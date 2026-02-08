@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const PROD_API = 'https://fuelnfix-backend-production.up.railway.app';
+const PROD_API = 'https://fuelnfix-backend.onrender.com';
 const LOCAL_API = 'http://localhost:5001';
 
 // Dynamic API URL Logic:
