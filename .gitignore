@@ -1,0 +1,10 @@
+# Local Netlify folder
+.netlify
+server/test_cf.js
+server/config/serviceAccountKey.json
+
+# Node
+node_modules
+.env
+.DS_Store
+dist
