@@ -2,6 +2,7 @@
 .netlify
 server/test_cf.js
 server/config/serviceAccountKey.json
+render.env
 
 # Node
 node_modules
