@@ -18,6 +18,14 @@ const UserSchema = new mongoose.Schema({
         default: []
     }, // Can be both
 
+    // Cashfree Vendor Fields for Split Payments
+    cashfreeVendorId: { type: String },
+    bankDetails: {
+        accountNumber: { type: String },
+        ifscCode: { type: String },
+        accountHolderName: { type: String }
+    },
+
     // Provider Specific Fields
     shopName: { type: String },
     services: { type: [mongoose.Schema.Types.Mixed], default: [] },

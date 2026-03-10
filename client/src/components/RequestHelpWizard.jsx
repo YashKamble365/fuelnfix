@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleMap, Marker, InfoWindow, useJsApiLoader, OverlayView } from '@react-google-maps/api';
 import { Camera, MapPin, ChevronLeft, ChevronRight, Loader2, Star, CheckCircle, Upload, Car, Search, Wrench, X, Plus, Minus, Crosshair, Map, Moon, Sun, Satellite } from 'lucide-react';
 import api from '../lib/api';
-import { storage } from '../firebaseConfig';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth } from '../firebaseConfig';
+
 
 // Uber-style dark map theme
 const UBER_STYLE = [
@@ -119,15 +119,43 @@ const RequestHelpWizard = ({ category, services, availableServices, userLocation
         if (!selectedProvider) return;
         setLoading(true);
 
+        let uploadPath = '';
         try {
-            const user = JSON.parse(localStorage.getItem('user'));
-            let uploadedPhotoUrl = "";
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const firebaseUser = auth.currentUser;
 
-            // Upload Photo to Firebase if exists
+            if (!firebaseUser) {
+                throw new Error('Firebase session is missing. Please sign in again before booking.');
+            }
+
+            await firebaseUser.getIdToken(true);
+            const safeFileName = imageFile?.name
+                ? imageFile.name.replace(/[/\\?#%*:|"<>]/g, '_')
+                : '';
+            let uploadedPhotoUrl = "";
+            let photoUploadWarning = "";
+
+            // Upload photo via server (bypasses client-side Firebase Storage issues).
             if (imageFile) {
-                const storageRef = ref(storage, `problem_photos/${user.name}/${Date.now()}_${imageFile.name}`);
-                const snapshot = await uploadBytes(storageRef, imageFile);
-                uploadedPhotoUrl = await getDownloadURL(snapshot.ref);
+                try {
+                    const ownerName = firebaseUser.uid || firebaseUser.displayName || 'unknown';
+                    const formData = new FormData();
+                    formData.append('photo', imageFile);
+                    formData.append('ownerName', ownerName);
+
+                    const uploadRes = await api.post('/api/upload/problem-photo', formData, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
+                    });
+                    uploadedPhotoUrl = uploadRes.data.url;
+                    console.info('Problem photo uploaded via server:', uploadRes.data.path);
+                } catch (uploadErr) {
+                    console.error('Problem photo upload failed, proceeding without photo.', uploadErr);
+                    photoUploadWarning = [
+                        'Photo upload failed via server.',
+                        `Error: ${uploadErr?.response?.data?.details || uploadErr.message}`,
+                        'Booking will continue without the image.'
+                    ].join('\n');
+                }
             }
 
             const payload = {
@@ -149,10 +177,16 @@ const RequestHelpWizard = ({ category, services, availableServices, userLocation
             };
 
             await api.post('/api/request/create', payload);
+            if (photoUploadWarning) {
+                console.warn('=== PHOTO UPLOAD WARNING ===\n' + photoUploadWarning);
+                alert(`Booking created successfully.\n\n${photoUploadWarning}`);
+            }
             onSuccess();
         } catch (err) {
             console.error("Booking Error:", err);
-            alert("Booking failed: " + err.message);
+            const errText = `Booking failed: ${err.message}\n${err?.response?.data?.details || ''}`;
+            console.error('=== BOOKING ERROR ===\n' + errText);
+            alert(errText);
         } finally {
             setLoading(false);
         }

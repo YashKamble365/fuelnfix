@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FuelNFix - Ultimate Codebase Bible</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap');
+
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --secondary: #f59e0b;
+            --bg: #0f172a;
+            --sidebar: #1e293b;
+            --card: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --code-bg: #020617;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+
+            .sidebar,
+            .print-btn {
+                display: none;
+            }
+
+            .content {
+                margin-left: 0;
+            }
+
+            pre {
+                border: 1px solid #ccc;
+                background: #f5f5f5;
+                color: black;
+                white-space: pre-wrap;
+            }
+
+            h1,
+            h2,
+            h3,
+            h4,
+            h5 {
+                color: black;
+            }
+
+            .card {
+                break-inside: avoid;
+                border: 1px solid #ddd;
+                box-shadow: none;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            background: var(--sidebar);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .brand {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .brand span {
+            color: var(--primary);
+        }
+
+        .nav-group {
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-title {
+            padding: 8px 24px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 8px 24px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: white;
+            padding-left: 28px;
+        }
+
+        .nav-item.active {
+            border-left-color: var(--primary);
+            background: rgba(59, 130, 246, 0.15);
+            color: white;
+        }
+
+        /* Main Content */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 60px;
+            scroll-behavior: smooth;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Typography */
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #60a5fa, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-top: 60px;
+            margin-bottom: 24px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 16px;
+            color: var(--primary);
+        }
+
+        p {
+            line-height: 1.7;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        /* Cards & Code */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .file-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+        }
+
+        .file-path {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 6px;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 24px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            border: 1px solid var(--border);
+            color: #d1d5db;
+        }
+
+        .comment {
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .keyword {
+            color: #c678dd;
+        }
+
+        .string {
+            color: #98c379;
+        }
+
+        .function {
+            color: #61afef;
+        }
+
+        .variable {
+            color: #e06c75;
+        }
+
+        .diagram {
+            background: var(--code-bg);
+            padding: 24px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-family: 'Fira Code', monospace;
+            white-space: pre;
+            color: var(--secondary);
+            overflow-x: auto;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .print-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 50px;
+            font-weight: 700;
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.5);
+            cursor: pointer;
+            transition: transform 0.2s;
+            z-index: 100;
+        }
+
+        .print-btn:hover {
+            transform: translateY(-4px);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand">Fuel<span>N</span>Fix Docs</div>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">System Overview</div>
+            <a href="#intro" class="nav-item">Introduction & Architecture</a>
+            <a href="#tech-stack" class="nav-item">Technology Stack</a>
+            <a href="#directory" class="nav-item">Directory Structure</a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">Backend Core</div>
+            <a href="#server-entry" class="nav-item">Entry (index.js)</a>
+            <a href="#models" class="nav-item">Data Models</a>
+            <a href="#auth-logic" class="nav-item">Authentication Logic</a>
+            <a href="#matching-logic" class="nav-item">Matching Algorithm</a>
+            <a href="#admin-logic" class="nav-item">Admin & Analytics</a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">Frontend Core</div>
+            <a href="#app-entry" class="nav-item">App Entry (App.jsx)</a>
+            <a href="#wizard" class="nav-item">Request Wizard</a>
+            <a href="#user-dash" class="nav-item">User Dashboard</a>
+            <a href="#provider-dash" class="nav-item">Provider Dashboard</a>
+            <a href="#admin-dash" class="nav-item">Admin Dashboard</a>
+            <a href="#maps" class="nav-item">Map Integration</a>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="container">
+
+            <!-- INTRO -->
+            <section id="intro">
+                <h1>FuelNFix Architect's Bible</h1>
+                <p>The definitive, comprehensive documentation for the FuelNFix On-Demand Roadside Assistance Platform.
+                    This document covers every line of critical code, architectural decision, and complex logic flow.
+                </p>
+
+                <div class="diagram">
+                    USER APP <---> [ SOCKET.IO ] <---> PROVIDER APP
+                            | ^ |
+                            v | v
+                            REST API <---> [ NODE SERVER ] <---> MONGO DB
+                                    |
+                                    GOOGLE MAPS API
+                </div>
+
+                <div class="card">
+                    <h3>Core Architecture</h3>
+                    <p>FuelNFix is a <strong>real-time, location-based service</strong> built on the MERN stack. Unlike
+                        traditional CRUD apps, it relies heavily on:</p>
+                    <ul>
+                        <li><strong>Geospatial Queries:</strong> MongoDB <code>$near</code> and <code>2dsphere</code>
+                            indexes to find nearest providers.</li>
+                        <li><strong>Event-Driven State:</strong> Socket.IO events drive the UI state (e.g., "Request
+                            Accepted" instantly updates the user's screen without a refresh).</li>
+                        <li><strong>State Machine Wrappers:</strong> The frontend wizards use complex internal state
+                            machines to guide users through multi-step processes.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- BACKEND - SERVER ENTRY -->
+            <section id="server-entry">
+                <h2>Backend Architecture</h2>
+
+                <div class="card">
+                    <div class="file-header">
+                        <h3>Server Entry Point</h3>
+                        <span class="file-path">server/index.js</span>
+                    </div>
+                    <p>This file is the "Brain". It bridges HTTP requests (Express) and WebSocket events (Socket.IO).
+                        Pay attention to how it handles the <code>provider_location_update</code> event.</p>
+
+                    <pre><code><span class="keyword">const</span> express = require('express');
+<span class="keyword">const</span> { Server } = require("socket.io");
+<span class="keyword">const</span> mongoose = require('mongoose');
+
+<span class="comment">// 1. Database Connection</span>
+mongoose.connect(process.env.MONGO_URI).then(() => {
+    <span class="comment">// Auto-seed default service rates if DB is empty</span>
+    ServiceRate.seedDefaults(); 
+});
+
+<span class="comment">// 2. Real-Time Logic (The "Uber" Tracking)</span>
+io.on('connection', (socket) => {
+    
+    <span class="comment">// A. Provider Report Location</span>
+    socket.on('provider_location_update', async ({ roomId, userId, location }) => {
+        
+        <span class="comment">// OPTIMIZATION: Broadcast to room immediately for smooth UI animation</span>
+        if (roomId) io.to(roomId).emit('track_provider', location);
+
+        <span class="comment">// PERSISTENCE: Save to DB for "Search Nearby" functionality</span>
+        <span class="comment">// We update this less frequently in production, but real-time here for demo</span>
+        if (userId) {
+            await User.findByIdAndUpdate(userId, {
+                liveLocation: { type: 'Point', coordinates: [location.lng, location.lat] },
+                isOnline: <span class="keyword">true</span>
+            });
+        }
+    });
+
+    <span class="comment">// B. Join Request Room (Privacy Isolation)</span>
+    socket.on('join_room', (roomId) => {
+        socket.join(roomId); <span class="comment">// Only User and Provider in this request allow to talk</span>
+    });
+});</code></pre>
+                </div>
+            </section>
+
+            <!-- BACKEND - MODELS -->
+            <section id="models">
+                <h2>Data Models</h2>
+
+                <div class="card">
+                    <div class="file-header">
+                        <h3>The User Model (Provider & Customer)</h3>
+                        <span class="file-path">server/models/User.js</span>
+                    </div>
+                    <p>We use a single <code>User</code> model for both customers and providers to allow role switching
+                        and simpler auth. The distinction is made via the <code>role</code> field.</p>
+
+                    <pre><code>const UserSchema = new mongoose.Schema({
+    role: { type: String, default: 'user' }, <span class="comment">// 'user', 'provider', 'admin'</span>
+    
+    <span class="comment">// Geolocation Indexing (CRITICAL)</span>
+    <span class="comment">// '2dsphere' index allows efficient Earth-surface queries</span>
+    location: {
+        type: { type: String, enum: ['Point'], default: 'Point' },
+        coordinates: { type: [Number] } <span class="comment">// [Longitude, Latitude] - Mongo requires Lng first!</span>
+    },
+    
+    <span class="comment">// Provider Specifics</span>
+    providerCategory: [{ type: String, enum: ['Mechanic', 'Fuel Delivery'] }],
+    isVerified: { type: Boolean, default: false },
+    verificationDocs: { shopPhoto: String, businessProof: String }
+});
+
+UserSchema.index({ location: '2dsphere' }); <span class="comment">// Must enable this in MongoDB Atlas</span></code></pre>
+                </div>
+
+                <div class="card">
+                    <div class="file-header">
+                        <h3>The Service Pricing Model</h3>
+                        <span class="file-path">server/models/ServiceRate.js</span>
+                    </div>
+                    <p>Allows Dynamic Pricing configurable by the Admin. Instead of hardcoding prices in code, we fetch
+                        them from this collection.</p>
+                    <pre><code>const ServiceRateSchema = new mongoose.Schema({
+    serviceName: { type: String, unique: true }, <span class="comment">// "Flat Tire"</span>
+    basePrice: { type: Number }, <span class="comment">// e.g., 300</span>
+    pricePerKm: { type: Number }, <span class="comment">// e.g., 20/km</span>
+    pricePerLitre: { type: Number }, <span class="comment">// Only for Fuel Delivery</span>
+    category: { type: String, enum: ['Mechanic', 'EV Support', 'Fuel Delivery'] }
+});</code></pre>
+                </div>
+            </section>
+
+            <!-- BACKEND - CONTROLLERS -->
+            <section id="matching-logic">
+                <h2>The Brain: Matching Algorithm</h2>
+                <div class="card">
+                    <div class="file-header">
+                        <h3>Request Controller</h3>
+                        <span class="file-path">server/controllers/requestController.js</span>
+                    </div>
+                    <p>This is where the magic happens. We don't just return all providers; we filter by service
+                        capabilities, check verification status, and calculate dynamic pricing based on distance.</p>
+
+                    <pre><code>exports.searchProviders = async (req, res) => {
+    const { serviceName, originLat, originLng } = req.body;
+
+    <span class="comment">// 1. The Proximity Search</span>
+    const providers = await User.find({
+        role: 'provider',
+        isVerified: true,
+        isOnline: true,
+        location: {
+            $near: {
+                $geometry: { type: "Point", coordinates: [originLng, originLat] },
+                $maxDistance: 50000 <span class="comment">// 50km Hard Limit</span>
+            }
+        },
+        services: { $elemMatch: { name: serviceName, active: true } }
+    });
+
+    <span class="comment">// 2. The Pricing Engine</span>
+    const results = providers.map(p => {
+        const distance = calculateHaversine(originLat, originLng, p.location);
+        const rate = await ServiceRate.findOne({ name: serviceName });
+        
+        return {
+            provider: p,
+            distance: distance,
+            <span class="comment">// Formula: Base + (Dist * Rate)</span>
+            totalEstimate: rate.basePrice + (distance * rate.pricePerKm)
+        };
+    });
+
+    res.json(results);
+};</code></pre>
+                </div>
+            </section>
+
+            <!-- FRONTEND STACK -->
+            <section id="app-entry">
+                <h2>Frontend Core</h2>
+                <div class="card">
+                    <div class="file-header">
+                        <h3>Application Entry & Routing</h3>
+                        <span class="file-path">client/src/App.jsx</span>
+                    </div>
+                    <p>The standard React Router setup. Note that there is <strong>NO Global Auth Context</strong> here.
+                        Authentication is handled per-component via <code>localStorage</code> checks, which is a
+                        lightweight architectural choice for this iteration.</p>
+                    <p>However, we DO use <code>ThemeProvider</code> and <code>ToastProvider</code> globally.</p>
+
+                    <pre><code>function App() {
+  return (
+    &lt;ThemeProvider storageKey="fuelnfix-ui-theme"&gt;
+      &lt;ToastProvider&gt;
+        &lt;BrowserRouter&gt;
+          &lt;Routes&gt;
+            &lt;Route path="/" element={&lt;Home /&gt;} /&gt;
+            &lt;Route path="/dashboard" element={&lt;Dashboard /&gt;} /&gt;
+            &lt;Route path="/admin" element={&lt;AdminDashboard /&gt;} /&gt;
+            <span class="comment">// ... other routes</span>
+          &lt;/Routes&gt;
+        &lt;/BrowserRouter&gt;
+      &lt;/ToastProvider&gt;
+    &lt;/ThemeProvider&gt;
+  );
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- ADMIN DASHBOARD DEEP DIVE -->
+            <section id="admin-dash">
+                <h2>The Admin Dashboard</h2>
+                <div class="card">
+                    <div class="file-header">
+                        <h3>AdminDashboard.jsx</h3>
+                        <span class="file-path">client/src/pages/AdminDashboard.jsx</span>
+                    </div>
+                    <p>A massive component (1500+ lines) acting as the Control Center. It aggregates data from multiple
+                        endpoints.</p>
+
+                    <h4>1. Data Fetching Strategy</h4>
+                    <p>We use <code>Promise.all</code> to fetch 7 different datasets concurrently on load. This prevents
+                        a "waterfall" of requests and ensures the dashboard pops in with data all at once.</p>
+                    <pre><code>const fetchAllData = async () => {
+    const [pending, verified, users, analytics, pricing, broadcast] = await Promise.all([
+        api.get('/pending-providers'),
+        api.get('/verified-providers'),
+        api.get('/users'),
+        api.get('/analytics'),
+        api.get('/pricing'),
+        api.get('/announcements')
+    ]);
+    <span class="comment">// Batch state updates to minimize re-renders</span>
+    setStats({ ... });
+    setPendingProviders(pending.data);
+};</code></pre>
+
+                    <h4>2. Provider Verification Flow</h4>
+                    <p>The dashboard renders cards for each pending provider. Clicking "Verify" sends a PUT request to
+                        <code>/api/admin/verify</code>, which toggles the `isVerified` flag on the User model, instantly
+                        allowing them to appear in search results.</p>
+
+                    <h4>3. Broadcast System</h4>
+                    <p>The Admin can send "Announcements". These are saved to DB and *immediately emitted via Socket.IO*
+                        to all connected clients. This is how we send "Heavy Rain Alerts" etc.</p>
+                </div>
+            </section>
+
+            <!-- WIZARD DEEP DIVE -->
+            <section id="wizard">
+                <h2>Complex UI: The Request Wizard</h2>
+                <div class="card">
+                    <div class="file-header">
+                        <h3>RequestHelpWizard.jsx</h3>
+                        <span class="file-path">client/src/components/RequestHelpWizard.jsx</span>
+                    </div>
+                    <p>This component is a <strong>Multi-Step Form State Machine</strong>. It manages the user's journey
+                        from chaos (car broken) to solution (help booked).</p>
+
+                    <div class="diagram">
+                        [Step 1: Service] -> [Step 2: Vehicle] -> [Step 3: Photo] -> [Step 4: Location Map] -> [Step 5:
+                        Provider Select]
+                    </div>
+
+                    <p><strong>Step 5 (Provider Select)</strong> is unique. It renders a full-screen Google Map with
+                        <code>OverlayView</code> markers. Each marker is a React component that shows the price.</p>
+
+                    <pre><code><span class="comment">// Rendering "Uber-style" Price Tags on Map</span>
+{providers.map(p => (
+    &lt;OverlayView position={p.location} mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}&gt;
+        &lt;motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}&gt;
+            &lt;div className="price-tag-marker"&gt;
+                ₹{p.totalEstimate}
+            &lt;/div&gt;
+        &lt;/motion.div&gt;
+    &lt;/OverlayView&gt;
+))}</code></pre>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <button class="print-btn" onclick="window.print()">🖨️ Download PDF</button>
+
+</body>
+
+</html>

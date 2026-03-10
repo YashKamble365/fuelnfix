@@ -8,6 +8,7 @@ router.put('/accept', requestController.acceptRequest);
 router.put('/complete', requestController.completeRequest); // New Endpoint
 router.get('/provider/:providerId', requestController.getProviderRequests);
 router.get('/provider/stats/:providerId', requestController.getProviderStats); // New Stats Endpoint
+router.get('/provider/earnings/:providerId', requestController.getProviderEarnings);
 router.get('/provider/history/:providerId', requestController.getProviderRequestHistory);
 router.get('/user/active/:userId', requestController.getUserActiveRequest);
 router.get('/user/history/:userId', requestController.getUserRequestHistory);

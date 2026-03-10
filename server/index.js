@@ -34,12 +34,14 @@ const adminRoutes = require('./routes/adminRoutes'); // New Admin Routes
 const requestRoutes = require('./routes/requestRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin-features', adminRoutes);
 app.use('/api/request', requestRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/review', reviewRoutes);
+app.use('/api/upload', uploadRoutes);
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/fuelnfix';
 
 mongoose.connect(MONGO_URI)

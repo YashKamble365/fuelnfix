@@ -5,7 +5,7 @@ import {
     LayoutDashboard, List, Wrench, Settings, LogOut, Menu, Bell,
     MapPin, CheckCircle, XCircle, Clock, Star, Activity, DollarSign,
     Power, Navigation, ChevronRight, User, Plus, Trash2, Edit2, Save, X, IndianRupee, ChevronDown, Check,
-    Phone, Shield, ImageIcon, Car, PlayCircle, History, Fuel, Megaphone
+    Phone, Shield, ImageIcon, Car, PlayCircle, History, Fuel, Megaphone, FileText
 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { load } from '@cashfreepayments/cashfree-js';
@@ -66,6 +66,11 @@ const ProviderDashboard = () => {
     const [updateData, setUpdateData] = useState({ shopName: '', address: '', phone: '', location: null });
     const [mapCenter, setMapCenter] = useState(null); // For location picker
 
+    // Cashfree Vendor State
+    const [showBankModal, setShowBankModal] = useState(false);
+    const [bankDetails, setBankDetails] = useState({ accountNumber: '', ifscCode: '', accountHolderName: '' });
+    const [isConnectingBank, setIsConnectingBank] = useState(false);
+
     // Real-Time Request State
     const [incomingRequest, setIncomingRequest] = useState(null);
     const [socket, setSocket] = useState(null);
@@ -101,6 +106,11 @@ const ProviderDashboard = () => {
     const [announcements, setAnnouncements] = useState([]);
     const [showAnnouncements, setShowAnnouncements] = useState(false);
     const [unreadAnnouncements, setUnreadAnnouncements] = useState(0);
+
+    // Earnings State
+    const [earningsData, setEarningsData] = useState([]);
+    const [earningsFilter, setEarningsFilter] = useState('all'); // 'all', 'today', 'month'
+    const [platformFee, setPlatformFee] = useState(5); // Dynamic Platform Fee
 
     // Fetch Announcements
     const fetchAnnouncements = async () => {
@@ -357,15 +367,20 @@ const ProviderDashboard = () => {
             // setUser(parsedUser); // Don't reset to local storage if we have state
 
             try {
-                const [userRes, pricingRes, activeRes, statsRes] = await Promise.all([
+                const [userRes, pricingRes, activeRes, statsRes, earningsRes, configRes] = await Promise.all([
                     api.get(`/api/auth/provider/dashboard/${parsedUser._id}`),
                     api.get('/api/admin-features/pricing'),
                     api.get(`/api/request/provider/${parsedUser._id}`),
-                    api.get(`/api/request/provider/stats/${parsedUser._id}`)
+                    api.get(`/api/request/provider/stats/${parsedUser._id}`),
+                    api.get(`/api/request/provider/earnings/${parsedUser._id}`),
+                    api.get('/api/admin-features/config')
                 ]);
 
                 const { user: updatedUser } = userRes.data;
                 const statsData = statsRes.data;
+
+                setEarningsData(earningsRes.data || []);
+                setPlatformFee(configRes.data?.platformFeePercentage ?? 5);
 
                 setIsOnline(updatedUser.isOnline);
                 setMyServices(updatedUser.services);
@@ -442,6 +457,29 @@ const ProviderDashboard = () => {
         navigate('/login');
     };
 
+    const handleConnectBank = async (e) => {
+        e.preventDefault();
+        setIsConnectingBank(true);
+        try {
+            const res = await api.post('/api/payment/add-vendor', {
+                providerId: user._id,
+                ...bankDetails
+            });
+            toast.success(res.data.message || "Bank details connected!");
+
+            const updatedUser = { ...user, cashfreeVendorId: res.data.vendor.vendor_id };
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser)); // Keep synced
+
+            setShowBankModal(false);
+        } catch (err) {
+            console.error('Adding vendor failed:', err);
+            toast.error(err.response?.data?.error || "Failed to connect bank");
+        } finally {
+            setIsConnectingBank(false);
+        }
+    };
+
     const toggleOnlineStatus = async () => {
         const newStatus = !isOnline;
         setIsOnline(newStatus);
@@ -473,6 +511,37 @@ const ProviderDashboard = () => {
         }
     };
 
+    // Pre-fetched OSRM route cache ref
+    const prefetchedRouteRef = useRef(null);
+
+    // Pre-fetch OSRM route as soon as a job is set active
+    // This runs in background so by the time user clicks "Start Driving", the route is ready
+    useEffect(() => {
+        if (!activeJob || !user?.location) return;
+
+        const origin = { lat: user.location.coordinates[1], lng: user.location.coordinates[0] };
+        const dest = { lat: activeJob.location.coordinates[1], lng: activeJob.location.coordinates[0] };
+
+        // Clear old cache
+        prefetchedRouteRef.current = null;
+
+        const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${dest.lng},${dest.lat}?overview=full`;
+        console.log('[Pre-fetch] Fetching OSRM route in background...');
+        fetch(osrmUrl)
+            .then(res => res.json())
+            .then(json => {
+                if (json.code === 'Ok' && json.routes && json.routes[0]) {
+                    const decodedPoints = polyline.decode(json.routes[0].geometry);
+                    const realPath = decodedPoints.map(([lat, lng]) => ({ lat, lng }));
+                    prefetchedRouteRef.current = realPath;
+                    console.log(`[Pre-fetch] OSRM route cached with ${realPath.length} points. Ready for instant simulation!`);
+                }
+            })
+            .catch(err => {
+                console.warn('[Pre-fetch] OSRM pre-fetch failed:', err);
+            });
+    }, [activeJob?._id]);
+
     const startSimulation = async (restartPath = null) => {
         if (!activeJob || !user?.location) {
             toast.warning("No active job or location data.");
@@ -500,19 +569,24 @@ const ProviderDashboard = () => {
 
         let pathPoints = [];
 
-        // Validate restartPath: Must be array and have at least 2 points
+        // Priority 1: Use restart path (cached from previous run)
         if (restartPath && Array.isArray(restartPath) && restartPath.length > 1) {
             pathPoints = restartPath;
-            console.log("Simulating with CACHED path:", pathPoints.length);
-        } else {
+            console.log("Simulating with RESTART path:", pathPoints.length);
+        }
+        // Priority 2: Use pre-fetched OSRM route (fetched when job was accepted)
+        else if (prefetchedRouteRef.current && prefetchedRouteRef.current.length > 1) {
+            pathPoints = prefetchedRouteRef.current;
+            console.log("Simulating with PRE-FETCHED OSRM route:", pathPoints.length, "points. INSTANT!");
+        }
+        // Priority 3: Fallback — fetch OSRM now (only if pre-fetch somehow failed)
+        else {
             try {
-                // Use FREE OSRM API (no API key needed!)
                 const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${dest.lng},${dest.lat}?overview=full`;
                 const res = await fetch(osrmUrl);
                 const json = await res.json();
 
                 if (json.code === 'Ok' && json.routes && json.routes[0]) {
-                    // Decode polyline into array of [lat, lng] points
                     const decodedPoints = polyline.decode(json.routes[0].geometry);
                     pathPoints = decodedPoints.map(([lat, lng]) => ({ lat, lng }));
                     console.log(`Ghost Driver: Route loaded with ${pathPoints.length} points.`);
@@ -548,22 +622,18 @@ const ProviderDashboard = () => {
 
         let currentIndex = 0;
         let progress = 0;
-        let lastTime = performance.now();
+        let lastTime = null;
 
         // Cancel any existing loop
         if (simulationRef.current) cancelAnimationFrame(simulationRef.current);
 
-        const animate = async (time) => {
-            // Check ref existence as "Simulating Check" 
-            // since 'isSimulating' state might be stale in closure
-            // We rely on stopSimulation setting ref to null to kill this loop.
-
+        const animate = (time) => {
+            if (!lastTime) lastTime = time; // Initialize EXACTLY on first frame
             const deltaTime = (time - lastTime) / 1000; // Seconds
             lastTime = time;
 
             const p1 = pathPoints[currentIndex];
             const p2 = pathPoints[currentIndex + 1];
-
 
             if (!p2) {
                 stopSimulation();
@@ -960,6 +1030,7 @@ const ProviderDashboard = () => {
     const navItems = [
         { id: 'overview', label: 'Overview', icon: LayoutDashboard },
         { id: 'active_job', label: 'Active Job', icon: PlayCircle }, // New Dedicated Tab
+        { id: 'earnings', label: 'My Earnings', icon: IndianRupee },
         { id: 'services', label: 'My Services', icon: Wrench },
         { id: 'reviews', label: 'My Reviews', icon: Star },
         { id: 'history', label: 'Service History', icon: History },
@@ -989,13 +1060,9 @@ const ProviderDashboard = () => {
             {/* Sidebar */}
             <aside className={`fixed lg:static inset-y-0 left-0 w-80 !bg-white dark:!bg-card/50 !backdrop-blur-none dark:!backdrop-blur-2xl border-r border-border z-40 transform transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} ${showSettingsModal ? 'lg:hidden' : ''} ${selectedRequest ? 'hidden' : 'flex'} flex-col`}>
                 <div className="p-8 pb-4 flex-1 overflow-y-auto scrollbar-hide bg-white dark:bg-transparent">
-                    <div className="flex items-center gap-3 mb-10">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-500/80 flex items-center justify-center text-white shadow-lg shadow-blue-500/25">
-                            <Wrench className="w-6 h-6 fill-current" />
-                        </div>
-                        <div className="text-2xl font-black tracking-tighter">
-                            Fuel<span className="text-blue-500">N</span>Fix <span className="text-xs align-top bg-blue-500/10 text-blue-500 px-1 py-0.5 rounded ml-1">PRO</span>
-                        </div>
+                    <div className="flex items-center mb-10">
+                        <img src="/logo1.png" alt="FuelNFix Provider" className="h-14 md:h-16 w-auto mr-3" />
+                        <span className="text-xs align-top bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded font-bold">PRO</span>
                     </div>
 
                     <div className="mb-8">
@@ -1836,26 +1903,43 @@ const ProviderDashboard = () => {
                                         </div>
 
                                         <div className="bg-secondary/30 rounded-2xl p-4 space-y-2 mb-6 border border-border/50">
-                                            <div className="flex justify-between items-center text-sm text-muted-foreground">
-                                                <span>Base Fee</span>
-                                                <span className="font-bold">₹{activeJob?.pricing?.baseFee || 0}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center text-sm text-muted-foreground">
-                                                <span>Delivery/Distance Fee</span>
-                                                <span className="font-bold">₹{activeJob?.pricing?.distanceFee || 0}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center text-sm text-muted-foreground">
-                                                <span>{activeJob?.category === 'Fuel Delivery' ? 'Fuel Cost' : 'Materials/Service Cost'}</span>
-                                                <span className="font-bold">₹{Number(getBillTotal()) || 0}</span>
-                                            </div>
-                                            <div className="border-t border-border/50 pt-2 flex justify-between items-center text-xl text-blue-500 font-black">
-                                                <span>Grand Total</span>
-                                                <span>₹{
-                                                    (activeJob?.pricing?.baseFee || 0) +
-                                                    (activeJob?.pricing?.distanceFee || 0) +
-                                                    (Number(getBillTotal()) || 0)
-                                                }</span>
-                                            </div>
+                                            {(() => {
+                                                const baseFee = activeJob?.pricing?.baseFee || 0;
+                                                const distFee = activeJob?.pricing?.distanceFee || 0;
+                                                const matCost = Number(getBillTotal()) || 0;
+                                                const subTotal = baseFee + distFee + matCost;
+                                                const platformFeeAmount = subTotal * (platformFee / 100);
+                                                const netEarnings = subTotal - platformFeeAmount;
+
+                                                return (
+                                                    <>
+                                                        <div className="flex justify-between items-center text-sm text-muted-foreground">
+                                                            <span>Base Fee</span>
+                                                            <span className="font-bold">₹{baseFee}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center text-sm text-muted-foreground">
+                                                            <span>Delivery/Distance Fee</span>
+                                                            <span className="font-bold">₹{distFee}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center text-sm text-muted-foreground">
+                                                            <span>{activeJob?.category === 'Fuel Delivery' ? 'Fuel Cost' : 'Materials/Service Cost'}</span>
+                                                            <span className="font-bold">₹{matCost}</span>
+                                                        </div>
+                                                        <div className="border-t border-border/50 pt-2 flex justify-between items-center text-lg text-foreground font-black">
+                                                            <span>Total Billed to User</span>
+                                                            <span>₹{subTotal}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center text-sm text-red-500 font-bold">
+                                                            <span>Platform Commission ({platformFee}%)</span>
+                                                            <span>-₹{platformFeeAmount.toFixed(2)}</span>
+                                                        </div>
+                                                        <div className="border-t border-border/50 mt-2 pt-2 flex justify-between items-center text-xl text-green-500 font-black">
+                                                            <span>Your Net Earnings</span>
+                                                            <span>₹{netEarnings.toFixed(2)}</span>
+                                                        </div>
+                                                    </>
+                                                );
+                                            })()}
                                         </div>
 
                                         <div className="flex gap-4">
@@ -2326,6 +2410,105 @@ const ProviderDashboard = () => {
                             </div>)
                     }
 
+                    {/* --- EARNINGS TAB --- */}
+                    {activeTab === 'earnings' && (() => {
+                        const today = new Date();
+                        const filteredEarnings = earningsData.filter(txn => {
+                            const txnDate = new Date(txn.timestamps?.createdAt || txn.createdAt);
+                            if (earningsFilter === 'today') {
+                                return txnDate.toDateString() === today.toDateString();
+                            }
+                            if (earningsFilter === 'month') {
+                                return txnDate.getMonth() === today.getMonth() && txnDate.getFullYear() === today.getFullYear();
+                            }
+                            return true;
+                        });
+
+                        const totalProviderCut = filteredEarnings.reduce((sum, txn) => sum + (txn.pricing?.totalEstimate || txn.pricing?.totalAmount || 0) * 0.95, 0);
+
+                        return (
+                            <div className="space-y-8 max-w-5xl mx-auto">
+                                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-green-500/10 to-background border border-green-500/20 p-8 rounded-[2.5rem] relative overflow-hidden shadow-lg shadow-green-500/5">
+                                    <div className="absolute top-0 right-0 p-32 bg-green-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                                    <h3 className="text-4xl font-black mb-1 text-green-500 relative z-10">₹{totalProviderCut.toFixed(2)}</h3>
+                                    <p className="text-green-500/80 font-bold uppercase tracking-wider text-sm relative z-10">Net Earnings (After {platformFee}% Platform Fee)</p>
+                                    <IndianRupee className="absolute bottom-[-20px] right-[-20px] w-32 h-32 text-green-500 opacity-10" />
+                                </motion.div>
+
+                                <div className="bg-card/50 border border-border/50 rounded-[2.5rem] p-6 lg:p-10 shadow-lg">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                                        <h3 className="text-2xl font-black flex items-center gap-3">
+                                            <FileText className="w-7 h-7 text-blue-500" />
+                                            Transactions & Payouts
+                                        </h3>
+                                        <div className="flex bg-background border border-border/50 rounded-xl p-1 shadow-sm">
+                                            {['all', 'today', 'month'].map(filter => (
+                                                <button
+                                                    key={filter}
+                                                    onClick={() => setEarningsFilter(filter)}
+                                                    className={`px-4 py-2 text-xs font-bold rounded-lg transition-all capitalize ${earningsFilter === filter ? 'bg-blue-500 text-white shadow-md' : 'text-muted-foreground hover:bg-accent'}`}
+                                                >
+                                                    {filter === 'month' ? 'This Month' : filter}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full min-w-[700px]">
+                                            <thead>
+                                                <tr className="border-b border-border/50">
+                                                    <th className="text-left py-4 px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider border-r border-border/50">Date</th>
+                                                    <th className="text-left py-4 px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider border-r border-border/50">Customer</th>
+                                                    <th className="text-right py-4 px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider border-r border-border/50">Total Bill</th>
+                                                    <th className="text-right py-4 px-4 text-xs font-black text-green-500 uppercase tracking-wider">Net Earned</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {filteredEarnings.map((txn, index) => {
+                                                    const txnDate = new Date(txn.timestamps?.createdAt || txn.createdAt);
+                                                    const totalBill = txn.pricing?.totalEstimate || txn.pricing?.totalAmount || 0;
+                                                    const netEarned = totalBill * 0.95;
+                                                    return (
+                                                        <motion.tr
+                                                            key={txn._id}
+                                                            initial={{ opacity: 0, x: -10 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            transition={{ delay: index * 0.05 }}
+                                                            className="border-b border-border/50 hover:bg-accent/30 transition-colors"
+                                                        >
+                                                            <td className="py-4 px-4 border-r border-border/50 text-sm font-medium">
+                                                                {txnDate.toLocaleDateString()}<br />
+                                                                <span className="text-xs font-normal text-muted-foreground">{txnDate.toLocaleTimeString()}</span>
+                                                            </td>
+                                                            <td className="py-4 px-4 border-r border-border/50">
+                                                                <span className="font-bold">{txn.customer?.name}</span>
+                                                            </td>
+                                                            <td className="py-4 px-4 border-r border-border/50 text-right font-bold text-foreground">
+                                                                <span className="line-through text-muted-foreground text-xs mr-2">₹{totalBill}</span>
+                                                                ₹{totalBill}
+                                                            </td>
+                                                            <td className="py-4 px-4 text-right font-black text-green-500">
+                                                                + ₹{netEarned.toFixed(2)}
+                                                            </td>
+                                                        </motion.tr>
+                                                    );
+                                                })}
+                                                {filteredEarnings.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan="4" className="text-center py-10 text-muted-foreground border-b border-border/50">
+                                                            No completed transactions found for the selected period.
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
+
                     {/* SETTINGS TAB */}
 
                     {
@@ -2355,6 +2538,15 @@ const ProviderDashboard = () => {
                                                         <span className="bg-green-500/10 text-green-500 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-1">
                                                             <CheckCircle className="w-3 h-3" /> Verified Provider
                                                         </span>
+                                                        {user.cashfreeVendorId ? (
+                                                            <span className="bg-blue-500/10 text-blue-500 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                                                                <CheckCircle className="w-3 h-3" /> Payouts Enabled
+                                                            </span>
+                                                        ) : (
+                                                            <span className="bg-red-500/10 text-red-500 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                                                                <XCircle className="w-3 h-3" /> Payouts Pending
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -2403,6 +2595,23 @@ const ProviderDashboard = () => {
                                         >
                                             <Edit2 className="w-4 h-4" /> Request Information Update
                                         </button>
+                                    )}
+
+                                    {!user.cashfreeVendorId ? (
+                                        <button
+                                            onClick={() => setShowBankModal(true)}
+                                            className="w-full py-5 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-[2rem] shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <IndianRupee className="w-5 h-5" /> Setup Bank Account for Payouts
+                                        </button>
+                                    ) : (
+                                        <div className="p-6 bg-blue-500/5 border border-blue-500/20 rounded-[2rem] flex flex-col items-center justify-center gap-2 text-center">
+                                            <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 mb-2">
+                                                <CheckCircle className="w-6 h-6" />
+                                            </div>
+                                            <h4 className="font-bold text-lg">Bank Account Connected</h4>
+                                            <p className="text-muted-foreground text-sm">Your earnings will be automatically paid out to your saved bank account.</p>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -2498,6 +2707,74 @@ const ProviderDashboard = () => {
                                                     </button>
                                                 </div>
                                             </div>
+                                        </form>
+                                    </div>
+                                </motion.div>
+                            </div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Bank Account Setup Modal (Cashfree Easy Split) */}
+                    <AnimatePresence>
+                        {showBankModal && (
+                            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+                                <motion.div
+                                    initial={{ scale: 0.95, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0.95, opacity: 0 }}
+                                    className="bg-card border border-border/50 rounded-[2.5rem] w-full max-w-lg shadow-2xl relative overflow-hidden"
+                                >
+                                    <div className="p-8">
+                                        <div className="flex justify-between items-start mb-6">
+                                            <div>
+                                                <h3 className="text-2xl font-black flex items-center gap-2">
+                                                    <IndianRupee className="w-6 h-6 text-blue-500" />
+                                                    Bank Account
+                                                </h3>
+                                                <p className="text-muted-foreground mt-1">Setup payouts to receive your earnings automatically.</p>
+                                            </div>
+                                            <button onClick={() => setShowBankModal(false)} className="p-2 hover:bg-accent rounded-full text-muted-foreground"><X className="w-6 h-6" /></button>
+                                        </div>
+
+                                        <form onSubmit={handleConnectBank} className="space-y-4">
+                                            <div>
+                                                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-1 block">Account Number</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    value={bankDetails.accountNumber}
+                                                    onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
+                                                    className="w-full h-14 rounded-2xl bg-secondary/30 border border-border px-5 font-bold outline-none focus:border-blue-500"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-1 block">IFSC Code</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    value={bankDetails.ifscCode}
+                                                    onChange={(e) => setBankDetails({ ...bankDetails, ifscCode: e.target.value.toUpperCase() })}
+                                                    className="w-full h-14 rounded-2xl bg-secondary/30 border border-border px-5 font-bold outline-none focus:border-blue-500 uppercase"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-1 block">Account Holder Name</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    value={bankDetails.accountHolderName}
+                                                    onChange={(e) => setBankDetails({ ...bankDetails, accountHolderName: e.target.value })}
+                                                    className="w-full h-14 rounded-2xl bg-secondary/30 border border-border px-5 font-bold outline-none focus:border-blue-500"
+                                                />
+                                            </div>
+
+                                            <button
+                                                type="submit"
+                                                disabled={isConnectingBank}
+                                                className="w-full h-14 mt-4 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white font-bold rounded-2xl transition-all"
+                                            >
+                                                {isConnectingBank ? 'Connecting...' : 'Securely Connect Bank'}
+                                            </button>
                                         </form>
                                     </div>
                                 </motion.div>

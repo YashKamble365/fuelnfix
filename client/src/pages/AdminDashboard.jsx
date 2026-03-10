@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Users, Wrench, Settings, LogOut, Search, Filter, CheckCircle, XCircle, MoreVertical, Star, Shield, ShieldCheck, AlertTriangle, TrendingUp, DollarSign, Activity, Calendar, FileText, ChevronRight, ChevronLeft, Edit2, Save, X, Plus, Megaphone, Menu, RefreshCw, Trash2, MapPin, Clock, Send, ShieldAlert, Mail } from 'lucide-react';
+import { LayoutDashboard, Users, Wrench, Settings, LogOut, Search, Filter, CheckCircle, XCircle, MoreVertical, Star, Shield, ShieldCheck, AlertTriangle, TrendingUp, IndianRupee, Activity, Calendar, FileText, ChevronRight, ChevronLeft, Edit2, Save, X, Plus, Megaphone, Menu, RefreshCw, Trash2, MapPin, Clock, Send, ShieldAlert, Mail } from 'lucide-react';
 import api from '../lib/api';
 import { useToast } from '../components/Toast';
 import { useTheme } from '../components/theme-provider';
@@ -37,6 +37,9 @@ const AdminDashboard = () => {
     const [newAnnouncement, setNewAnnouncement] = useState({ title: '', message: '', target: 'all' });
     const [allReviews, setAllReviews] = useState([]);
     const [reviewFilter, setReviewFilter] = useState('all'); // 'all', 'provider', 'user'
+    const [earningsData, setEarningsData] = useState({ totalEarnings: 0, transactions: [] });
+    const [earningsFilter, setEarningsFilter] = useState('all'); // 'all', 'today', 'month'
+    const [platformConfig, setPlatformConfig] = useState({ platformFeePercentage: 5 });
 
     const [loading, setLoading] = useState(true);
     const [selectedProvider, setSelectedProvider] = useState(null);
@@ -65,14 +68,16 @@ const AdminDashboard = () => {
     const fetchAllData = async () => {
         setLoading(true);
         try {
-            const [pendingRes, verifiedRes, usersRes, analyticsRes, pricingRes, broadcastRes, reviewsRes] = await Promise.all([
+            const [pendingRes, verifiedRes, usersRes, analyticsRes, pricingRes, broadcastRes, reviewsRes, earningsRes, configRes] = await Promise.all([
                 api.get('/api/auth/admin/pending-providers'),
                 api.get('/api/auth/admin/verified-providers'),
                 api.get('/api/auth/admin/users'),
                 api.get('/api/admin-features/analytics'),
                 api.get('/api/admin-features/pricing'),
                 api.get('/api/admin-features/announcements'),
-                api.get('/api/review/admin/all')
+                api.get('/api/review/admin/all'),
+                api.get('/api/admin-features/earnings'),
+                api.get('/api/admin-features/config')
             ]);
 
             setPendingProviders(pendingRes.data);
@@ -91,6 +96,10 @@ const AdminDashboard = () => {
             setServiceRates(pricingRes.data);
             setAnnouncements(broadcastRes.data);
             setAllReviews(reviewsRes.data.reviews || []);
+            setEarningsData(earningsRes.data);
+            if (configRes.data) {
+                setPlatformConfig(configRes.data);
+            }
 
         } catch (err) {
             console.error("Fetch Error:", err);
@@ -265,18 +274,41 @@ const AdminDashboard = () => {
     };
 
     const handleDeleteAnnouncement = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this announcement?")) return;
-
+        if (!window.confirm("Delete this broadcast globally?")) return;
         try {
             await api.delete(`/api/admin-features/announcements/${id}`);
-            // Optimistic update
-            setAnnouncements(prev => prev.filter(a => a._id !== id));
-            toast.success("Announcement Deleted");
+            toast.success("Broadcast Deleted");
+            setAnnouncements(announcements.filter(a => a._id !== id));
         } catch (err) {
-            console.error(err);
-            toast.error("Failed to delete announcement");
+            toast.error("Failed to delete broadcast");
         }
     };
+
+    const handleUpdatePlatformFee = async (e) => {
+        e.preventDefault();
+        try {
+            const res = await api.put('/api/admin-features/config', {
+                platformFeePercentage: platformConfig.platformFeePercentage
+            });
+            setPlatformConfig(res.data);
+            toast.success("Platform Fee Updated successfully!");
+        } catch (err) {
+            toast.error("Failed to update platform fee");
+        }
+    };
+
+    if (loading) return (
+        <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+            <div className="absolute inset-0 z-0 pointer-events-none">
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 contrast-150 brightness-100"></div>
+                <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[120px] animate-pulse-slow"></div>
+            </div>
+            <div className="relative z-10 flex flex-col items-center gap-4">
+                <img src="/logo1.png" alt="FuelNFix Admin" className="h-24 md:h-32 w-auto animate-pulse" />
+                <p className="text-xl font-bold text-muted-foreground">Loading Admin Dashboard...</p>
+            </div>
+        </div>
+    );
 
     if (!user) return null;
 
@@ -303,13 +335,9 @@ const AdminDashboard = () => {
             {/* Sidebar */}
             <aside className={`fixed ${selectedProvider ? 'lg:hidden' : 'lg:static'} inset-y-0 left-0 w-80 !bg-white dark:!bg-card/50 !backdrop-blur-none dark:!backdrop-blur-2xl border-r border-border z-50 transform transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col`}>
                 <div className="p-8 pb-4 bg-white dark:bg-transparent">
-                    <div className="flex items-center gap-3 mb-10">
-                        <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/25">
-                            <ShieldCheck className="w-6 h-6 fill-current" />
-                        </div>
-                        <div className="text-2xl font-black tracking-tighter">
-                            Fuel<span className="text-blue-500">N</span>Fix <span className="text-xs align-top bg-orange-500/10 text-orange-500 px-1 py-0.5 rounded ml-1">ADMIN</span>
-                        </div>
+                    <div className="flex items-center mb-10">
+                        <img src="/logo1.png" alt="FuelNFix Admin" className="h-14 md:h-16 w-auto mr-3" />
+                        <span className="text-xs align-top bg-orange-500/10 text-orange-500 px-1.5 py-0.5 rounded font-bold">ADMIN</span>
                     </div>
 
                     <nav className="space-y-2">
@@ -321,6 +349,9 @@ const AdminDashboard = () => {
                         </button>
                         <button onClick={() => { setActiveTab('broadcast'); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'broadcast' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'hover:bg-accent/50 text-foreground/80'}`}>
                             <Megaphone className="w-5 h-5 opacity-90" /> Broadcasts
+                        </button>
+                        <button onClick={() => { setActiveTab('earnings'); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'earnings' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'hover:bg-accent/50 text-foreground/80'}`}>
+                            <IndianRupee className="w-5 h-5 opacity-90" /> Platform Earnings
                         </button>
 
                         <div className="pt-6 pb-2 pl-4 text-xs font-bold text-muted-foreground uppercase tracking-widest">Management</div>
@@ -411,22 +442,24 @@ const AdminDashboard = () => {
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-gradient-to-br from-card/60 to-background border border-border/50 p-8 rounded-[2.5rem] h-[400px] relative overflow-hidden shadow-lg shadow-blue-500/5">
                             <div className="absolute top-0 right-0 p-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
                             <h3 className="text-xl font-bold mb-6 relative z-10">Platform Growth</h3>
-                            <ResponsiveContainer width="100%" height="100%" className="relative z-10">
-                                <AreaChart data={growthData}>
-                                    <defs>
-                                        <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#f97316" stopOpacity={0.8} />
-                                            <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} />
-                                    <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                                    <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                                    <Tooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '12px' }} />
-                                    <Area type="monotone" dataKey="users" stroke="#f97316" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
-                                    <Area type="monotone" dataKey="providers" stroke="#22c55e" strokeWidth={3} fillOpacity={0.1} fill="#22c55e" />
-                                </AreaChart>
-                            </ResponsiveContainer>
+                            <div className="w-full h-[300px] relative z-10">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={growthData}>
+                                        <defs>
+                                            <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#f97316" stopOpacity={0.8} />
+                                                <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} />
+                                        <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                        <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                        <Tooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '12px' }} />
+                                        <Area type="monotone" dataKey="users" stroke="#f97316" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
+                                        <Area type="monotone" dataKey="providers" stroke="#22c55e" strokeWidth={3} fillOpacity={0.1} fill="#22c55e" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
                         </motion.div>
                     </div>
                 )}
@@ -434,6 +467,41 @@ const AdminDashboard = () => {
                 {/* --- PRICING TAB --- */}
                 {activeTab === 'pricing' && (
                     <div className="space-y-10">
+                        {/* --- Platform Fee Settings --- */}
+                        <div className="bg-card/50 border border-border/50 rounded-[2.5rem] p-6 lg:p-10 shadow-lg relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-32 bg-green-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                            <h3 className="text-2xl font-black flex items-center gap-3 relative z-10 mb-6">
+                                <IndianRupee className="w-6 h-6 text-green-500" />
+                                Global Monetization
+                            </h3>
+                            <form onSubmit={handleUpdatePlatformFee} className="relative z-10 flex flex-col sm:flex-row items-end gap-4 max-w-xl">
+                                <div className="space-y-2 flex-1 w-full">
+                                    <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground ml-1">Platform Commission Fee (%)</label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            step="0.1"
+                                            min="0"
+                                            max="100"
+                                            required
+                                            value={platformConfig?.platformFeePercentage ?? 5}
+                                            onChange={(e) => setPlatformConfig({ ...platformConfig, platformFeePercentage: Number(e.target.value) })}
+                                            className="w-full h-14 rounded-2xl bg-background border border-border px-6 font-black text-xl outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all text-foreground"
+                                        />
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-black text-xl">%</div>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground font-medium ml-1">This percentage is deducted from the provider's payout on every completed order.</p>
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="h-14 px-8 bg-green-500 text-white font-black uppercase text-sm tracking-wider rounded-2xl shadow-lg shadow-green-500/20 hover:scale-[1.02] hover:bg-green-600 active:scale-95 transition-all outline-none whitespace-nowrap"
+                                >
+                                    <Save className="w-5 h-5 inline mr-2" />
+                                    Update Fee
+                                </button>
+                            </form>
+                        </div>
+
                         {/* Add Service Check */}
                         <div className="bg-gradient-to-br from-card/60 to-background border border-border/50 p-8 rounded-[2.5rem] shadow-xl shadow-blue-500/5 relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
@@ -1493,6 +1561,109 @@ const AdminDashboard = () => {
                         )}
                     </AnimatePresence>
                 </AnimatePresence>
+
+                {/* --- EARNINGS TAB --- */}
+                {activeTab === 'earnings' && (() => {
+                    const today = new Date();
+                    const filteredEarnings = earningsData.transactions.filter(txn => {
+                        const txnDate = new Date(txn.timestamps?.createdAt || txn.createdAt);
+                        if (earningsFilter === 'today') {
+                            return txnDate.toDateString() === today.toDateString();
+                        }
+                        if (earningsFilter === 'month') {
+                            return txnDate.getMonth() === today.getMonth() && txnDate.getFullYear() === today.getFullYear();
+                        }
+                        return true;
+                    });
+
+                    const filteredTotal = filteredEarnings.reduce((sum, txn) => sum + (txn.pricing?.platformFee || 0), 0);
+
+                    return (
+                        <div className="space-y-8">
+                            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-green-500/10 to-background border border-green-500/20 p-8 rounded-[2.5rem] relative overflow-hidden shadow-lg shadow-green-500/5">
+                                <div className="absolute top-0 right-0 p-32 bg-green-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                                <h3 className="text-4xl font-black mb-1 text-green-500 relative z-10">₹{filteredTotal?.toFixed(2) || '0.00'}</h3>
+                                <p className="text-green-500/80 font-bold uppercase tracking-wider text-sm relative z-10">Total Platform Commission Earned</p>
+                                <IndianRupee className="absolute bottom-[-20px] right-[-20px] w-32 h-32 text-green-500 opacity-10" />
+                            </motion.div>
+
+
+
+                            <div className="bg-card/50 border border-border/50 rounded-[2.5rem] p-6 lg:p-10 shadow-lg">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                                    <h3 className="text-2xl font-black flex items-center gap-3">
+                                        <FileText className="w-7 h-7 text-blue-500" />
+                                        Commission Transactions
+                                    </h3>
+                                    <div className="flex bg-background border border-border/50 rounded-xl p-1 shadow-sm">
+                                        {['all', 'today', 'month'].map(filter => (
+                                            <button
+                                                key={filter}
+                                                onClick={() => setEarningsFilter(filter)}
+                                                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all capitalize ${earningsFilter === filter ? 'bg-blue-500 text-white shadow-md' : 'text-muted-foreground hover:bg-accent'}`}
+                                            >
+                                                {filter === 'month' ? 'This Month' : filter}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="overflow-x-auto">
+                                    <table className="w-full min-w-[800px]">
+                                        <thead>
+                                            <tr className="border-b border-border/50">
+                                                <th className="text-left py-4 px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider border-r border-border/50">Order Date</th>
+                                                <th className="text-left py-4 px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider border-r border-border/50">Customer</th>
+                                                <th className="text-left py-4 px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider border-r border-border/50">Provider</th>
+                                                <th className="text-right py-4 px-4 text-xs font-bold text-muted-foreground uppercase tracking-wider border-r border-border/50">Total Bill</th>
+                                                <th className="text-right py-4 px-4 text-xs font-black text-green-500 uppercase tracking-wider">Platform Cut ({platformConfig?.platformFeePercentage ?? 5}%)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredEarnings.map((txn, index) => {
+                                                const txnDate = new Date(txn.timestamps?.createdAt || txn.createdAt);
+                                                return (
+                                                    <motion.tr
+                                                        key={txn._id}
+                                                        initial={{ opacity: 0, x: -10 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        transition={{ delay: index * 0.05 }}
+                                                        className="border-b border-border/50 hover:bg-accent/30 transition-colors"
+                                                    >
+                                                        <td className="py-4 px-4 border-r border-border/50 text-sm font-medium">
+                                                            {txnDate.toLocaleDateString()}<br />
+                                                            <span className="text-xs font-normal text-muted-foreground">{txnDate.toLocaleTimeString()}</span>
+                                                        </td>
+                                                        <td className="py-4 px-4 border-r border-border/50">
+                                                            <span className="font-bold">{txn.customer?.name}</span>
+                                                        </td>
+                                                        <td className="py-4 px-4 border-r border-border/50 flex flex-col gap-0.5 whitespace-nowrap">
+                                                            <span className="font-bold">{txn.provider?.name || 'Unknown Provider'}</span>
+                                                            <span className="text-xs text-muted-foreground flex items-center gap-1"><Wrench className="w-3 h-3" />{txn.provider?.shopName || 'Independent'}</span>
+                                                        </td>
+                                                        <td className="py-4 px-4 border-r border-border/50 text-right font-bold text-foreground">
+                                                            ₹{(txn.pricing?.totalAmount || txn.pricing?.totalEstimate || 0)}
+                                                        </td>
+                                                        <td className="py-4 px-4 text-right font-black text-green-500">
+                                                            + ₹{txn.pricing?.platformFee?.toFixed(2) || 0}
+                                                        </td>
+                                                    </motion.tr>
+                                                )
+                                            })}
+                                            {filteredEarnings.length === 0 && (
+                                                <tr>
+                                                    <td colSpan="5" className="text-center py-10 text-muted-foreground border-b border-border/50">
+                                                        No commission earnings yet.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                })()}
             </main>
         </div >
     );

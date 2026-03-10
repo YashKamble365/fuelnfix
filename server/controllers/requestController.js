@@ -71,6 +71,22 @@ exports.getProviderStats = async (req, res) => {
     }
 };
 
+exports.getProviderEarnings = async (req, res) => {
+    try {
+        const { providerId } = req.params;
+        const requests = await Request.find({
+            provider: providerId,
+            status: { $in: ['Completed', 'Paid', 'Rated'] }
+        })
+            .populate('customer', 'name phone photoUrl')
+            .sort({ createdAt: -1 });
+
+        res.json(requests);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
 exports.searchProviders = async (req, res) => {
     try {
         const { serviceName, serviceNames, originLat, originLng, category } = req.body;
@@ -401,9 +417,18 @@ exports.completeRequest = async (req, res) => {
 
         const finalTotal = request.pricing.baseFee + request.pricing.distanceFee + Number(materialCost);
 
+        const PlatformConfig = require('../models/PlatformConfig');
+        let config = await PlatformConfig.findOne({ singletonId: 'global_config' });
+        const feePercentage = config && config.platformFeePercentage !== undefined ? config.platformFeePercentage : 5;
+
+        const platformFee = Math.ceil(finalTotal) * (feePercentage / 100);
+        const providerEarnings = Math.ceil(finalTotal) - platformFee;
+
         request.status = 'Completed';
         request.pricing.materialCost = Number(materialCost);
         request.pricing.totalAmount = Math.ceil(finalTotal);
+        request.pricing.platformFee = platformFee;
+        request.pricing.providerEarnings = providerEarnings;
         request.timestamps.completedAt = new Date();
 
         await request.save();
@@ -459,13 +484,24 @@ exports.sendBill = async (req, res) => {
         // Total = Base Fee + Distance Fee + Materials
         const baseFee = request.pricing?.baseFee || 0;
         const distanceFee = request.pricing?.distanceFee || 0;
-        const totalAmount = baseFee + distanceFee + materialsCost;
+        const subtotal = baseFee + distanceFee + materialsCost;
+
+        // Monetization: Dynamic Platform Fee (Default 5%)
+        const PlatformConfig = require('../models/PlatformConfig');
+        let config = await PlatformConfig.findOne({ singletonId: 'global_config' });
+        const feePercentage = config && config.platformFeePercentage !== undefined ? config.platformFeePercentage : 5;
+
+        const totalAmount = subtotal; // What user pays via Cashfree wrapper
+        const platformFee = totalAmount * (feePercentage / 100);
+        const providerEarnings = totalAmount - platformFee;
 
         // Update request with bill
         request.billSent = true;
         request.billSentAt = new Date();
         request.pricing.materialCost = materialsCost;
-        request.pricing.totalAmount = totalAmount; // Removed Math.ceil for exact amount
+        request.pricing.totalAmount = totalAmount;
+        request.pricing.platformFee = platformFee;
+        request.pricing.providerEarnings = providerEarnings;
 
         await request.save();
 

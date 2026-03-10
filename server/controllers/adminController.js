@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const ServiceRate = require('../models/ServiceRate');
 const Announcement = require('../models/Announcement');
+const Request = require('../models/Request');
 
 // --- Pricing ---
 exports.getServiceRates = async (req, res) => {
@@ -61,6 +62,41 @@ exports.deleteServiceRate = async (req, res) => {
         const { id } = req.params;
         await ServiceRate.findByIdAndDelete(id);
         res.json({ message: 'Service deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// --- Platform Config ---
+const PlatformConfig = require('../models/PlatformConfig');
+
+exports.getPlatformConfig = async (req, res) => {
+    try {
+        let config = await PlatformConfig.findOne({ singletonId: 'global_config' });
+        if (!config) {
+            config = new PlatformConfig();
+            await config.save();
+        }
+        res.json(config);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+exports.updatePlatformConfig = async (req, res) => {
+    try {
+        const { platformFeePercentage } = req.body;
+
+        let config = await PlatformConfig.findOne({ singletonId: 'global_config' });
+        if (!config) {
+            config = new PlatformConfig();
+        }
+
+        config.platformFeePercentage = platformFeePercentage;
+        config.updatedAt = Date.now();
+        await config.save();
+
+        res.json(config);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -142,6 +178,28 @@ exports.getAnalytics = async (req, res) => {
         res.json({
             counts: { totalUsers, totalProviders, pendingProviders },
             growthData
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// --- Earnings ---
+exports.getEarnings = async (req, res) => {
+    try {
+        const earningsData = await Request.find({
+            status: { $in: ['Completed', 'Paid', 'Rated'] },
+            'pricing.platformFee': { $exists: true, $gt: 0 }
+        })
+            .populate('provider', 'name email shopName')
+            .populate('customer', 'name email')
+            .sort({ createdAt: -1 });
+
+        const totalPlatformEarnings = earningsData.reduce((sum, req) => sum + (req.pricing.platformFee || 0), 0);
+
+        res.json({
+            totalEarnings: totalPlatformEarnings,
+            transactions: earningsData
         });
     } catch (err) {
         res.status(500).json({ message: err.message });

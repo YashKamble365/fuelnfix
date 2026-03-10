@@ -6,55 +6,10 @@ import { MapPin, Loader2, ArrowRight, Wrench, Fuel, ChevronDown, Users } from 'l
 import { auth, googleProvider } from '../firebaseConfig';
 import { signInWithPopup } from 'firebase/auth';
 
-// Demo Providers for quick testing (39 total across Amravati)
-const DEMO_PROVIDERS = [
-    // === MECHANIC ONLY (11) ===
-    { name: 'Rajesh Patil', shopName: 'Rajesh Auto Works', email: 'demo_rajesh@fuelnfix.com', category: ['Mechanic'] },
-    { name: 'Sunil Deshmukh', shopName: 'Deshmukh Motors', email: 'demo_sunil@fuelnfix.com', category: ['Mechanic'] },
-    { name: 'Amit Sharma', shopName: 'Sharma Car Care', email: 'demo_amit@fuelnfix.com', category: ['Mechanic'] },
-    { name: 'Vikram Jadhav', shopName: 'Jadhav Garage', email: 'demo_vikram@fuelnfix.com', category: ['Mechanic'] },
-    { name: 'Akash Pawar', shopName: 'Pawar Auto Clinic', email: 'demo_akash@fuelnfix.com', category: ['Mechanic'] },
-    { name: 'Tushar Ingle', shopName: 'Ingle Mechanics', email: 'demo_tushar@fuelnfix.com', category: ['Mechanic'] },
-    { name: 'Pravin Shinde', shopName: 'Shinde Car Hospital', email: 'demo_pravin@fuelnfix.com', category: ['Mechanic'] },
-    { name: 'Kiran Gaikwad', shopName: 'Gaikwad Motor Works', email: 'demo_kiran@fuelnfix.com', category: ['Mechanic'] },
-    { name: 'Sandip Chavan', shopName: 'Chavan Garage Zone', email: 'demo_sandip@fuelnfix.com', category: ['Mechanic'] },
-    { name: 'Mangesh Thombre', shopName: 'Thombre Auto Fix', email: 'demo_mangesh@fuelnfix.com', category: ['Mechanic'] },
-    { name: 'Nitin Borkar', shopName: 'Borkar Quick Repair', email: 'demo_nitin@fuelnfix.com', category: ['Mechanic'] },
-    // === FUEL DELIVERY ONLY (11) ===
-    { name: 'Prashant Wankhede', shopName: 'Quick Fuel Express', email: 'demo_prashant@fuelnfix.com', category: ['Fuel Delivery'] },
-    { name: 'Nikhil Thakur', shopName: 'Thakur Fuel Services', email: 'demo_nikhil@fuelnfix.com', category: ['Fuel Delivery'] },
-    { name: 'Sachin Gawande', shopName: 'Gawande Petroleum', email: 'demo_sachin@fuelnfix.com', category: ['Fuel Delivery'] },
-    { name: 'Rohit Kulkarni', shopName: 'Kulkarni Oil Depot', email: 'demo_rohit@fuelnfix.com', category: ['Fuel Delivery'] },
-    { name: 'Vishal Kokate', shopName: 'Kokate Fuel Point', email: 'demo_vishal@fuelnfix.com', category: ['Fuel Delivery'] },
-    { name: 'Ajay Somkuwar', shopName: 'Somkuwar Fuel Express', email: 'demo_ajay@fuelnfix.com', category: ['Fuel Delivery'] },
-    { name: 'Rahul Deshpande', shopName: 'Deshpande Petroleum', email: 'demo_rahul@fuelnfix.com', category: ['Fuel Delivery'] },
-    { name: 'Umesh Tawade', shopName: 'Tawade Oil Services', email: 'demo_umesh@fuelnfix.com', category: ['Fuel Delivery'] },
-    { name: 'Yogesh Kharkar', shopName: 'Kharkar Fuel Hub', email: 'demo_yogesh@fuelnfix.com', category: ['Fuel Delivery'] },
-    { name: 'Swapnil Meshram', shopName: 'Meshram Energy', email: 'demo_swapnil@fuelnfix.com', category: ['Fuel Delivery'] },
-    { name: 'Vaibhav Lokhande', shopName: 'Lokhande Fuel Stop', email: 'demo_vaibhav@fuelnfix.com', category: ['Fuel Delivery'] },
-    // === BOTH MECHANIC + FUEL DELIVERY (17) ===
-    { name: 'Mahesh Ingole', shopName: 'Ingole Auto & Fuel', email: 'demo_mahesh@fuelnfix.com', category: ['Mechanic', 'Fuel Delivery'] },
-    { name: 'Anil Bhagat', shopName: 'Bhagat Service Station', email: 'demo_anil@fuelnfix.com', category: ['Mechanic', 'Fuel Delivery'] },
-    { name: 'Sanjay Raut', shopName: 'Raut Complete Care', email: 'demo_sanjay@fuelnfix.com', category: ['Mechanic', 'Fuel Delivery'] },
-    { name: 'Deepak More', shopName: 'More Motors & Fuel', email: 'demo_deepak@fuelnfix.com', category: ['Mechanic', 'Fuel Delivery'] },
-    { name: 'Vijay Kale', shopName: 'Kale Roadside Assist', email: 'demo_vijay@fuelnfix.com', category: ['Mechanic', 'Fuel Delivery'] },
-    { name: 'Ganesh Sawant', shopName: 'Sawant Auto Hub', email: 'demo_ganesh@fuelnfix.com', category: ['Mechanic', 'Fuel Delivery'] },
-    { name: 'Pratik Wagh', shopName: 'Wagh Complete Care', email: 'demo_pratik@fuelnfix.com', category: ['Mechanic', 'Fuel Delivery'] },
-    { name: 'Abhijit Ghate', shopName: 'Ghate Auto & Fuel', email: 'demo_abhijit@fuelnfix.com', category: ['Mechanic', 'Fuel Delivery'] },
-    { name: 'Gaurav Nimje', shopName: 'Nimje Service Point', email: 'demo_gaurav@fuelnfix.com', category: ['Mechanic', 'Fuel Delivery'] },
-    { name: 'Omkar Zade', shopName: 'Zade Multi Services', email: 'demo_omkar@fuelnfix.com', category: ['Mechanic', 'Fuel Delivery'] },
-    { name: 'Rushikesh Vaidya', shopName: 'Vaidya Road Assist', email: 'demo_rushikesh@fuelnfix.com', category: ['Mechanic', 'Fuel Delivery'] },
-    { name: 'Suraj Khapre', shopName: 'Khapre Auto Hub', email: 'demo_suraj@fuelnfix.com', category: ['Mechanic', 'Fuel Delivery'] },
-    { name: 'Aniket Ghodke', shopName: 'Ghodke Express Care', email: 'demo_aniket@fuelnfix.com', category: ['Mechanic', 'Fuel Delivery'] },
-    { name: 'Shubham Dorle', shopName: 'Dorle Roadside Pro', email: 'demo_shubham@fuelnfix.com', category: ['Mechanic', 'Fuel Delivery'] },
-    { name: 'Avinash Bawane', shopName: 'Bawane Total Care', email: 'demo_avinash@fuelnfix.com', category: ['Mechanic', 'Fuel Delivery'] },
-    { name: 'Pankaj Urade', shopName: 'Urade Auto Zone', email: 'demo_pankaj@fuelnfix.com', category: ['Mechanic', 'Fuel Delivery'] },
-    { name: 'Hemant Kawale', shopName: 'Kawale All-in-One', email: 'demo_hemant@fuelnfix.com', category: ['Mechanic', 'Fuel Delivery'] },
-];
-
 const Login = () => {
     const [loading, setLoading] = useState(false);
-    const [showDemoProviders, setShowDemoProviders] = useState(false);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const navigate = useNavigate();
 
     const handleGoogleLogin = async () => {
@@ -64,8 +19,19 @@ const Login = () => {
             const user = result.user;
             const idToken = await user.getIdToken();
 
-            // Send ID Token to Backend
-            const res = await api.post('/api/auth/login', { idToken });
+            // Send ID Token to Backend (with retry for cold-start)
+            let res;
+            try {
+                res = await api.post('/api/auth/login', { idToken }, { timeout: 15000 });
+            } catch (firstErr) {
+                // If timeout or network error, try once more (server might be waking up)
+                if (firstErr.code === 'ECONNABORTED' || !firstErr.response) {
+                    console.warn('Server cold-start detected, retrying login...');
+                    res = await api.post('/api/auth/login', { idToken }, { timeout: 30000 });
+                } else {
+                    throw firstErr;
+                }
+            }
             const userData = res.data.user;
             localStorage.setItem('user', JSON.stringify(userData));
 
@@ -95,23 +61,42 @@ const Login = () => {
                 return;
             }
 
-            alert("Login Failed. " + (err.response?.data?.message || err.message));
+            if (err.code === 'ECONNABORTED') {
+                alert("Server is taking too long to respond. Please try again in a moment.");
+            } else {
+                alert("Login Failed. " + (err.response?.data?.message || err.message));
+            }
         } finally {
             setLoading(false);
         }
     };
 
-    const handleDemoProviderLogin = async (provider) => {
+    const handleEmailLogin = async (e) => {
+        e.preventDefault();
         setLoading(true);
         try {
-            // Fetch demo provider from backend by email
-            const res = await api.get(`/api/auth/demo-login/${provider.email}`);
+            const res = await api.post('/api/auth/login', { email, password });
             const userData = res.data.user;
+            const token = res.data.token;
+
             localStorage.setItem('user', JSON.stringify(userData));
-            navigate('/provider-dashboard');
+            if (token) localStorage.setItem('token', token);
+
+            // Role-based Redirect
+            if (userData.role === 'admin') {
+                navigate('/admin');
+            } else if (userData.role === 'provider') {
+                if (userData.isVerified) {
+                    navigate('/provider-dashboard');
+                } else {
+                    navigate('/verification-pending');
+                }
+            } else {
+                navigate('/dashboard');
+            }
         } catch (err) {
-            console.error("Demo Login Error:", err);
-            alert("Demo Login Failed. " + (err.response?.data?.message || err.message));
+            console.error("Login Error:", err);
+            alert("Login Failed. " + (err.response?.data?.message || err.message));
         } finally {
             setLoading(false);
         }
@@ -133,89 +118,73 @@ const Login = () => {
             >
                 {/* Logo */}
                 <div className="text-center mb-10">
-                    <Link to="/" className="inline-flex items-center gap-3 text-3xl font-black tracking-tighter justify-center mb-2">
-                        <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
-                            <MapPin className="w-6 h-6 fill-current" />
-                        </div>
-                        <span>Fuel<span className="text-blue-500">N</span>Fix</span>
+                    <Link to="/" className="inline-flex items-center justify-center mb-4 hover:scale-105 transition-transform">
+                        <img src="/logo1.png" alt="FuelNFix" className="h-16 md:h-20 w-auto" />
                     </Link>
                     <p className="text-muted-foreground font-medium">Welcome back, commander.</p>
                 </div>
 
                 <div className="space-y-6">
+                    {/* Standard Email/Password Login Form */}
+                    <form onSubmit={handleEmailLogin} className="space-y-4">
+                        <div>
+                            <input
+                                type="email"
+                                placeholder="Email address"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full h-14 bg-background/50 border border-border/50 rounded-2xl px-6 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <input
+                                type="password"
+                                placeholder="Password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full h-14 bg-background/50 border border-border/50 rounded-2xl px-6 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
+                                required
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={loading || !email || !password}
+                            className="w-full h-14 rounded-full bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 active:scale-95 transition-all shadow-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Sign In'}
+                        </button>
+                    </form>
+
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t border-border/50" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-card/50 px-2 text-muted-foreground font-bold">
+                                Or continue with
+                            </span>
+                        </div>
+                    </div>
+
                     <button
+                        type="button"
                         onClick={handleGoogleLogin}
                         disabled={loading}
-                        className="w-full h-14 rounded-full bg-white text-black font-bold text-lg hover:bg-gray-100 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-3 group relative overflow-hidden"
+                        className="w-full h-14 rounded-full bg-white text-black font-bold text-lg hover:bg-gray-100 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-3 group relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {loading ? (
                             <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
                         ) : (
                             <>
                                 <img src="https://www.google.com/favicon.ico" alt="Google" className="w-6 h-6" />
-                                <span>Continue with Google</span>
+                                <span>Google</span>
                                 <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 -ml-4 group-hover:ml-0 transition-all duration-300" />
                             </>
                         )}
                     </button>
 
-                    {/* Demo Provider Section */}
-                    <div className="border border-dashed border-amber-500/30 rounded-2xl p-4 bg-amber-500/5">
-                        <button
-                            onClick={() => setShowDemoProviders(!showDemoProviders)}
-                            className="w-full flex items-center justify-between text-amber-500 font-bold text-sm"
-                        >
-                            <span className="flex items-center gap-2">
-                                <Users className="w-4 h-4" />
-                                Demo Provider Login
-                            </span>
-                            <ChevronDown className={`w-4 h-4 transition-transform ${showDemoProviders ? 'rotate-180' : ''}`} />
-                        </button>
 
-                        <AnimatePresence>
-                            {showDemoProviders && (
-                                <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="overflow-hidden"
-                                >
-                                    <div className="mt-4 max-h-60 overflow-y-auto space-y-2 pr-2 scrollbar-hide">
-                                        {DEMO_PROVIDERS.map((p) => (
-                                            <button
-                                                key={p.email}
-                                                onClick={() => handleDemoProviderLogin(p)}
-                                                disabled={loading}
-                                                className="w-full text-left p-3 rounded-xl bg-background/50 hover:bg-background border border-border/50 hover:border-amber-500/50 transition-all group"
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <p className="font-bold text-sm text-foreground">{p.shopName}</p>
-                                                        <p className="text-xs text-muted-foreground">{p.name}</p>
-                                                    </div>
-                                                    <div className="flex gap-1">
-                                                        {p.category.includes('Mechanic') && (
-                                                            <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500">
-                                                                <Wrench className="w-3 h-3" />
-                                                            </span>
-                                                        )}
-                                                        {p.category.includes('Fuel Delivery') && (
-                                                            <span className="p-1.5 rounded-lg bg-orange-500/10 text-orange-500">
-                                                                <Fuel className="w-3 h-3" />
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <p className="text-[10px] text-center text-muted-foreground mt-3">
-                                        These are demo accounts for testing in Amravati region
-                                    </p>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
 
                     <div className="relative">
                         <div className="absolute inset-0 flex items-center">

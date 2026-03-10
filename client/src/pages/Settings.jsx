@@ -140,13 +140,8 @@ const Settings = () => {
             {/* Sidebar (Same as Dashboard) */}
             <aside className={`fixed lg:static inset-y-0 left-0 w-80 !bg-white dark:!bg-card/50 !backdrop-blur-none dark:!backdrop-blur-2xl border-r border-border z-50 transform transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col`}>
                 <div className="p-8 pb-4 bg-white dark:bg-transparent">
-                    <div className="flex items-center gap-3 mb-10">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-500/80 flex items-center justify-center text-white shadow-lg shadow-blue-500/25">
-                            <MapPin className="w-6 h-6 fill-current" />
-                        </div>
-                        <div className="text-2xl font-black tracking-tighter">
-                            Fuel<span className="text-blue-500">N</span>Fix
-                        </div>
+                    <div className="flex items-center mb-10">
+                        <img src="/logo1.png" alt="FuelNFix Logo" className="h-14 md:h-16 w-auto" />
                     </div>
 
                     <nav className="space-y-2">

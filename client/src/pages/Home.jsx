@@ -105,14 +105,15 @@ const Home = () => {
                 <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-blue-950/5 dark:to-blue-950/20 z-0">
                     {/* Animated Gradient Orbs */}
                     <motion.div
-                        className="absolute top-1/2 left-1/2 w-[1000px] h-[1000px] bg-gradient-to-r from-blue-600/20 via-indigo-500/15 to-violet-500/10 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                        className="absolute top-1/2 left-1/2 w-[1200px] h-[1200px] bg-gradient-to-r from-blue-600/20 via-indigo-500/15 to-violet-500/10 rounded-full blur-[150px] -translate-x-1/2 -translate-y-1/2 pointer-events-none"
                         style={{ x: mouseXSpring, y: mouseYSpring }}
-                        animate={{ scale: [1, 1.1, 1], rotate: [0, 5, 0] }}
-                        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                        animate={{ scale: [1, 1.15, 1], rotate: [0, 8, 0] }}
+                        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
                     />
-                    <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-blue-500/15 via-cyan-400/10 to-transparent blur-[100px] rounded-full animate-pulse-slow"></div>
-                    <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-indigo-500/10 via-blue-400/5 to-transparent blur-[100px] rounded-full animate-pulse-slow" style={{ animationDelay: '3s' }}></div>
-                    <div className="absolute top-1/4 left-1/4 w-[300px] h-[300px] bg-gradient-to-r from-violet-500/10 to-fuchsia-500/5 blur-[80px] rounded-full animate-float"></div>
+                    <div className="absolute top-0 right-0 w-[700px] h-[700px] bg-gradient-to-bl from-blue-500/15 via-cyan-400/10 to-transparent blur-[120px] rounded-full animate-pulse-slow"></div>
+                    <div className="absolute bottom-0 left-0 w-[700px] h-[700px] bg-gradient-to-tr from-indigo-500/10 via-blue-400/5 to-transparent blur-[120px] rounded-full animate-pulse-slow" style={{ animationDelay: '3s' }}></div>
+                    <div className="absolute top-1/3 left-1/4 w-[400px] h-[400px] bg-gradient-to-r from-violet-500/10 to-fuchsia-500/5 blur-[100px] rounded-full animate-float"></div>
+                    <div className="absolute bottom-1/3 right-1/4 w-[300px] h-[300px] bg-gradient-to-r from-cyan-500/8 to-blue-500/5 blur-[80px] rounded-full animate-float" style={{ animationDelay: '5s' }}></div>
 
                     {/* Refined Grid Pattern */}
                     <div className="absolute inset-0 bg-[linear-gradient(to_right,#3b82f608_1px,transparent_1px),linear-gradient(to_bottom,#3b82f608_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black_40%,transparent_100%)]"></div>
@@ -123,18 +124,28 @@ const Home = () => {
 
                 <div className="relative z-10 max-w-7xl mx-auto px-4 text-center">
 
-                    {/* Premium Headline with Gradient Text */}
+                    {/* Premium Headline */}
                     <motion.h1
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.7, delay: 0.1, ease: [0.21, 0.47, 0.32, 0.98] }}
-                        className="text-6xl sm:text-7xl md:text-8xl lg:text-[9rem] font-black tracking-tighter mb-8 leading-[0.9]"
+                        className="text-6xl sm:text-7xl md:text-8xl lg:text-[8rem] font-black tracking-tighter mb-4 leading-[0.9]"
                     >
-                        <span className="block text-foreground">Stranded?</span>
-                        <span className="block mt-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 bg-clip-text text-transparent italic">
-                            We've Got You.
+                        <span className="block text-foreground/90 text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-3 uppercase" style={{ letterSpacing: '0.15em' }}>Welcome to</span>
+                        <span className="block pb-2">
+                            <span className="text-foreground">Fuel</span><span className="bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 bg-clip-text text-transparent">N</span><span className="text-foreground">Fix</span>
                         </span>
                     </motion.h1>
+
+                    {/* Tagline */}
+                    <motion.p
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.15 }}
+                        className="text-xl md:text-2xl text-foreground/60 font-semibold mb-6 tracking-tight"
+                    >
+                        Roadside Assistance, <span className="bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">Reimagined.</span>
+                    </motion.p>
 
                     {/* Refined Subtitle */}
                     <motion.p
@@ -146,11 +157,13 @@ const Home = () => {
                         India's most trusted roadside assistance platform. Connect with verified mechanics and fuel delivery partners in under 5 minutes.
                     </motion.p>
 
+
+
                     {/* Premium CTA Buttons */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.3, ease: [0.21, 0.47, 0.32, 0.98] }}
+                        transition={{ duration: 0.6, delay: 0.35, ease: [0.21, 0.47, 0.32, 0.98] }}
                         className="flex flex-col sm:flex-row gap-4 justify-center items-center"
                     >
                         <Link
@@ -190,6 +203,10 @@ const Home = () => {
                         <div className="flex items-center gap-2">
                             <CreditCard className="w-5 h-5 text-violet-500" />
                             <span className="text-sm font-medium">Secure Payments</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Smartphone className="w-5 h-5 text-cyan-500" />
+                            <span className="text-sm font-medium">Live Tracking</span>
                         </div>
                     </motion.div>
                 </div>
@@ -416,8 +433,8 @@ const Home = () => {
                                 </div>
 
                                 <ul className="space-y-4 mb-10 text-sm font-medium text-muted-foreground">
-                                    <li className="flex items-center gap-3"><Check className="w-5 h-5 text-blue-500" /> 5km included</li>
-                                    <li className="flex items-center gap-3"><Check className="w-5 h-5 text-blue-500" /> ₹15/km additional</li>
+                                    <li className="flex items-center gap-3"><Check className="w-5 h-5 text-blue-500" /> Verified Expert Mechanics</li>
+                                    <li className="flex items-center gap-3"><Check className="w-5 h-5 text-blue-500" /> Rapid On-Site Diagnosis</li>
                                     <li className="flex items-center gap-3"><Check className="w-5 h-5 text-blue-500" /> Spares at MRP</li>
                                 </ul>
 
@@ -437,12 +454,12 @@ const Home = () => {
                                 <p className="text-inherit opacity-60 text-sm mb-8">Petrol/Diesel delivered to GPS pin.</p>
 
                                 <div className="mb-8">
-                                    <span className="text-5xl font-black tracking-tighter text-inherit">₹199</span>
+                                    <span className="text-5xl font-black tracking-tighter text-inherit">₹110</span>
                                     <span className="text-inherit opacity-60 font-medium"> / fixed fee</span>
                                 </div>
 
                                 <ul className="space-y-4 mb-10 text-sm font-medium text-inherit opacity-80">
-                                    <li className="flex items-center gap-3"><Check className="w-5 h-5 text-blue-500" /> Up to 5 Liters</li>
+                                    <li className="flex items-center gap-3"><Check className="w-5 h-5 text-blue-500" /> Minimum 5 Liters</li>
                                     <li className="flex items-center gap-3"><Check className="w-5 h-5 text-blue-500" /> 24/7 Availability</li>
                                     <li className="flex items-center gap-3"><Check className="w-5 h-5 text-blue-500" /> Fastest Arrival</li>
                                 </ul>
@@ -467,7 +484,7 @@ const Home = () => {
 
                                 <ul className="space-y-4 mb-10 text-sm font-medium text-muted-foreground">
                                     <li className="flex items-center gap-3"><Check className="w-5 h-5 text-blue-500" /> Hydraulic Hook-up</li>
-                                    <li className="flex items-center gap-3"><Check className="w-5 h-5 text-blue-500" /> ₹25/km distance rate</li>
+                                    <li className="flex items-center gap-3"><Check className="w-5 h-5 text-blue-500" /> Live Location Tracking</li>
                                     <li className="flex items-center gap-3"><Check className="w-5 h-5 text-blue-500" /> Insured transport</li>
                                 </ul>
 
@@ -816,11 +833,8 @@ const Home = () => {
                     <div className="py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
                         {/* Brand Column */}
                         <div className="lg:col-span-1">
-                            <Link to="/" className="flex items-center gap-3 mb-6">
-                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                                    <MapPin className="w-6 h-6 text-white fill-current" />
-                                </div>
-                                <span className="font-black text-2xl tracking-tighter">Fuel<span className="bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">N</span>Fix</span>
+                            <Link to="/" className="flex items-center mb-6">
+                                <img src="/logo1.png" alt="FuelNFix Logo" className="h-16 md:h-20 w-auto" />
                             </Link>
                             <p className="text-muted-foreground text-sm leading-relaxed mb-6">
                                 India's most trusted roadside assistance platform. Fast, reliable, and always there when you need us most.

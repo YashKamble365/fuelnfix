@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
 import { ThemeProvider } from "./components/theme-provider"
 import { ToastProvider } from "./components/Toast"
+import { API_BASE_URL } from './lib/api';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -14,6 +16,10 @@ import Terms from './pages/Terms';
 import DataPolicy from './pages/DataPolicy';
 
 function App() {
+  // Wake up the Render backend on app load so it's ready when user logs in
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/`, { method: 'GET' }).catch(() => { });
+  }, []);
   return (
     <ThemeProvider defaultTheme="system" storageKey="fuelnfix-ui-theme">
       <ToastProvider>

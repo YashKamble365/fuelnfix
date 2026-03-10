@@ -103,9 +103,7 @@ const Receipt = ({
                     <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white print:bg-blue-600">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-                                    <span className="text-2xl font-black text-blue-600">F</span>
-                                </div>
+                                <img src="/logo1.png" alt="FuelNFix Logo" className="h-16 md:h-20 w-auto bg-white rounded-2xl" />
                                 <div>
                                     <h1 className="text-2xl font-black tracking-tight">FuelnFix</h1>
                                     <p className="text-white/80 text-xs font-medium">Roadside Assistance</p>

@@ -1,0 +1,1727 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FuelNFix - Complete Technical Documentation</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap');
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                font-size: 11pt;
+            }
+
+            h1 {
+                page-break-before: always;
+            }
+
+            h1:first-of-type {
+                page-break-before: avoid;
+            }
+
+            pre {
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.7;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px;
+            color: #1a1a2e;
+            background: #ffffff;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            color: #0f0f23;
+            margin-top: 2em;
+            margin-bottom: 0.8em;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            border-bottom: 3px solid #6366f1;
+            padding-bottom: 15px;
+            margin-top: 0;
+        }
+
+        h2 {
+            font-size: 1.8em;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            font-size: 1.4em;
+            color: #4f46e5;
+        }
+
+        h4 {
+            font-size: 1.1em;
+            color: #6b7280;
+        }
+
+        p {
+            margin: 1em 0;
+        }
+
+        code {
+            font-family: 'Fira Code', monospace;
+            background: #f4f4f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.85em;
+            line-height: 1.5;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5em 0;
+            font-size: 0.95em;
+        }
+
+        th,
+        td {
+            border: 1px solid #e5e7eb;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        .note {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .success {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+            padding: 15px 20px;
+            margin: 1.5em 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        ul,
+        ol {
+            padding-left: 1.5em;
+            margin: 1em 0;
+        }
+
+        li {
+            margin: 0.5em 0;
+        }
+
+        .toc {
+            background: #f9fafb;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 2em 0;
+        }
+
+        .toc h3 {
+            margin-top: 0;
+        }
+
+        .toc a {
+            color: #4f46e5;
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+            transition: transform 0.2s;
+        }
+
+        .print-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .badge-get {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-post {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-put {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-delete {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+
+<body>
+
+    <button onclick="window.print()" class="print-btn no-print">🖨️ Print / Save as PDF</button>
+
+    <h1>🚗 FuelNFix: Complete Technical Documentation</h1>
+    <p><strong>Version:</strong> 1.0.0 | <strong>Last Updated:</strong> February 2026 | <strong>Platform:</strong> Web
+        (PWA-Ready)</p>
+
+    <div class="toc">
+        <h3>📑 Table of Contents</h3>
+        <ol>
+            <li><a href="#intro">Introduction & Problem Statement</a></li>
+            <li><a href="#objectives">Project Objectives</a></li>
+            <li><a href="#features">Feature List</a></li>
+            <li><a href="#architecture">System Architecture</a></li>
+            <li><a href="#tech">Technology Stack</a></li>
+            <li><a href="#database">Database Design</a></li>
+            <li><a href="#api">Complete API Reference</a></li>
+            <li><a href="#logic">Core Algorithm & Logic</a></li>
+            <li><a href="#realtime">Real-Time Features</a></li>
+            <li><a href="#payment">Payment Integration</a></li>
+            <li><a href="#manual">User Manual</a></li>
+            <li><a href="#deploy">Deployment Guide</a></li>
+            <li><a href="#security">Security Considerations</a></li>
+            <li><a href="#faq">FAQ & Troubleshooting</a></li>
+        </ol>
+    </div>
+
+    <!-- SECTION 1 -->
+    <h2 id="intro">1. Introduction & Problem Statement</h2>
+
+    <h3>1.1 Background</h3>
+    <p>Vehicle breakdowns are unpredictable events that cause significant stress and inconvenience. Traditional roadside
+        assistance services suffer from:</p>
+    <ul>
+        <li><strong>Long wait times</strong>: Average response time exceeds 45 minutes in urban areas</li>
+        <li><strong>Lack of transparency</strong>: No visibility into arrival time or pricing</li>
+        <li><strong>Trust issues</strong>: Difficulty verifying mechanic credentials</li>
+        <li><strong>Payment friction</strong>: Cash-only transactions are risky and inconvenient</li>
+    </ul>
+
+    <h3>1.2 Solution Overview</h3>
+    <p><strong>FuelNFix</strong> is a comprehensive on-demand roadside assistance platform that connects stranded
+        motorists with verified local service providers. Often described as the <em>"Uber for Mechanics"</em>, it
+        leverages real-time GPS tracking, intelligent matching algorithms, and secure digital payments to deliver:</p>
+    <ul>
+        <li>Average response time under 15 minutes</li>
+        <li>Complete price transparency before booking</li>
+        <li>Verified and rated service providers</li>
+        <li>Cashless, secure transactions</li>
+    </ul>
+
+    <h3>1.3 Scope</h3>
+    <p>The platform supports three service categories:</p>
+    <ol>
+        <li><strong>Mechanic Services</strong>: Flat Tire, Dead Battery, Towing, Key Lockout, Engine Trouble</li>
+        <li><strong>Fuel Delivery</strong>: Petrol and Diesel delivery to stranded vehicles</li>
+        <li><strong>EV Support</strong>: Mobile EV Charging, Flatbed Towing, Battery Jumpstart, Cable Unlock</li>
+    </ol>
+
+    <!-- SECTION 2 -->
+    <h2 id="objectives">2. Project Objectives</h2>
+
+    <h3>2.1 Primary Objectives</h3>
+    <table>
+        <tr>
+            <th>Objective</th>
+            <th>Success Metric</th>
+        </tr>
+        <tr>
+            <td>Reduce average response time</td>
+            <td>&lt; 15 minutes in served areas</td>
+        </tr>
+        <tr>
+            <td>Enable transparent pricing</td>
+            <td>100% of users see price before booking</td>
+        </tr>
+        <tr>
+            <td>Verify all providers</td>
+            <td>100% document verification before activation</td>
+        </tr>
+        <tr>
+            <td>Eliminate cash transactions</td>
+            <td>100% digital payment adoption</td>
+        </tr>
+        <tr>
+            <td>Enable real-time tracking</td>
+            <td>Live provider location visible to users</td>
+        </tr>
+    </table>
+
+    <h3>2.2 Technical Objectives</h3>
+    <ul>
+        <li>Build a scalable MERN stack architecture</li>
+        <li>Implement geospatial queries for location-based matching</li>
+        <li>Integrate Socket.IO for bidirectional real-time communication</li>
+        <li>Integrate Cashfree payment gateway</li>
+        <li>Deploy on cloud platforms (Render, Netlify/Vercel)</li>
+    </ul>
+
+    <!-- SECTION 3 -->
+    <h2 id="features">3. Complete Feature List</h2>
+
+    <h3>3.1 Customer Features</h3>
+    <table>
+        <tr>
+            <th>Feature</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>Google Sign-In</td>
+            <td>One-click authentication using Google OAuth via Firebase</td>
+        </tr>
+        <tr>
+            <td>Vehicle Management</td>
+            <td>Add, edit, delete multiple vehicles (model, plate, fuel type)</td>
+        </tr>
+        <tr>
+            <td>Service Request</td>
+            <td>Multi-step wizard to select vehicle, service type, and confirm location</td>
+        </tr>
+        <tr>
+            <td>Provider Discovery</td>
+            <td>View list of nearby available providers with ratings and ETA</td>
+        </tr>
+        <tr>
+            <td>Real-Time Tracking</td>
+            <td>Watch provider approach on live map with car marker</td>
+        </tr>
+        <tr>
+            <td>OTP Verification</td>
+            <td>4-digit code to verify provider arrival</td>
+        </tr>
+        <tr>
+            <td>Digital Payments</td>
+            <td>Pay via UPI, Credit Card, Netbanking through Cashfree</td>
+        </tr>
+        <tr>
+            <td>Receipt Generation</td>
+            <td>Downloadable PDF/Image receipt for insurance</td>
+        </tr>
+        <tr>
+            <td>Review System</td>
+            <td>Rate and review providers after service completion</td>
+        </tr>
+        <tr>
+            <td>Request History</td>
+            <td>View past completed and cancelled requests</td>
+        </tr>
+    </table>
+
+    <h3>3.2 Provider Features</h3>
+    <table>
+        <tr>
+            <th>Feature</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>Provider Registration</td>
+            <td>Separate flow with shop details and document upload</td>
+        </tr>
+        <tr>
+            <td>Document Verification</td>
+            <td>Upload shop photo, business proof for admin review</td>
+        </tr>
+        <tr>
+            <td>Online/Offline Toggle</td>
+            <td>Control availability status</td>
+        </tr>
+        <tr>
+            <td>Service Management</td>
+            <td>Add/remove/toggle individual services</td>
+        </tr>
+        <tr>
+            <td>Incoming Requests</td>
+            <td>Real-time popup with distance, service type, estimated earnings</td>
+        </tr>
+        <tr>
+            <td>Navigation</td>
+            <td>One-click Google Maps navigation to customer</td>
+        </tr>
+        <tr>
+            <td>OTP Entry</td>
+            <td>Verify customer code to start job</td>
+        </tr>
+        <tr>
+            <td>Bill Generation</td>
+            <td>Add material costs, generate itemized bill</td>
+        </tr>
+        <tr>
+            <td>Earnings Dashboard</td>
+            <td>View today's and total earnings</td>
+        </tr>
+        <tr>
+            <td>Profile Update Requests</td>
+            <td>Request changes that require admin approval</td>
+        </tr>
+        <tr>
+            <td>Rating Display</td>
+            <td>View average rating and recent reviews</td>
+        </tr>
+    </table>
+
+    <h3>3.3 Admin Features</h3>
+    <table>
+        <tr>
+            <th>Feature</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>Dashboard Analytics</td>
+            <td>Total users, providers, pending verifications with 6-month growth charts</td>
+        </tr>
+        <tr>
+            <td>Provider Verification</td>
+            <td>Review documents, approve/reject new providers</td>
+        </tr>
+        <tr>
+            <td>User Management</td>
+            <td>List all users, search, delete accounts</td>
+        </tr>
+        <tr>
+            <td>Service Rate Management</td>
+            <td>CRUD operations on base price, per-km rate, per-litre rate</td>
+        </tr>
+        <tr>
+            <td>Announcements</td>
+            <td>Broadcast messages to all users, all providers, or everyone</td>
+        </tr>
+        <tr>
+            <td>Profile Update Approval</td>
+            <td>Review and approve/reject provider profile changes</td>
+        </tr>
+        <tr>
+            <td>Revoke Verification</td>
+            <td>Deactivate problematic providers</td>
+        </tr>
+    </table>
+
+    <!-- SECTION 4 -->
+    <h2 id="architecture">4. System Architecture</h2>
+
+    <h3>4.1 High-Level Architecture</h3>
+    <pre>
+┌─────────────────────────────────────────────────────────────────────┐
+│                           CLIENT LAYER                              │
+├─────────────────┬─────────────────────┬─────────────────────────────┤
+│   User App      │   Provider App      │       Admin Dashboard       │
+│   (React)       │   (React)           │       (React)               │
+└────────┬────────┴──────────┬──────────┴──────────────┬──────────────┘
+         │ HTTP/WS           │ HTTP/WS                 │ HTTP
+         ▼                   ▼                         ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         API GATEWAY                                 │
+│                     Express.js + Socket.IO                          │
+├─────────────────────────────────────────────────────────────────────┤
+│  /api/auth     │  /api/request  │  /api/payment  │  /api/admin     │
+└────────────────┼────────────────┼────────────────┼──────────────────┘
+                 │                │                │
+                 ▼                ▼                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                       SERVICE LAYER                                 │
+├─────────────────┬─────────────────────┬─────────────────────────────┤
+│ authController  │ requestController   │ adminController             │
+└─────────────────┴──────────┬──────────┴─────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                        DATA LAYER                                   │
+├────────┬─────────┬──────────┬──────────┬──────────┬─────────────────┤
+│  User  │ Request │ Review   │ServiceRate│Announcement│             │
+└────────┴─────────┴──────────┴──────────┴──────────┴─────────────────┘
+                             │
+                             ▼
+                    ┌────────────────┐
+                    │  MongoDB Atlas │
+                    │   (Cloud DB)   │
+                    └────────────────┘
+</pre>
+
+    <h3>4.2 Communication Patterns</h3>
+    <ul>
+        <li><strong>REST API</strong>: Standard CRUD operations (authentication, profile, admin actions)</li>
+        <li><strong>WebSocket (Socket.IO)</strong>: Real-time events (location updates, request notifications, chat)
+        </li>
+        <li><strong>External APIs</strong>: Firebase Auth, Google Maps, Cashfree Payments</li>
+    </ul>
+
+    <!-- SECTION 5 -->
+    <h2 id="tech">5. Technology Stack</h2>
+
+    <h3>5.1 Frontend</h3>
+    <table>
+        <tr>
+            <th>Technology</th>
+            <th>Version</th>
+            <th>Purpose</th>
+        </tr>
+        <tr>
+            <td>React</td>
+            <td>18.x</td>
+            <td>Component-based UI library</td>
+        </tr>
+        <tr>
+            <td>Vite</td>
+            <td>5.x</td>
+            <td>Fast build tool and dev server</td>
+        </tr>
+        <tr>
+            <td>React Router DOM</td>
+            <td>6.x</td>
+            <td>Client-side routing</td>
+        </tr>
+        <tr>
+            <td>TailwindCSS</td>
+            <td>3.x</td>
+            <td>Utility-first CSS framework</td>
+        </tr>
+        <tr>
+            <td>Framer Motion</td>
+            <td>10.x</td>
+            <td>Animation library</td>
+        </tr>
+        <tr>
+            <td>Socket.IO Client</td>
+            <td>4.x</td>
+            <td>WebSocket client</td>
+        </tr>
+        <tr>
+            <td>Axios</td>
+            <td>1.x</td>
+            <td>HTTP client</td>
+        </tr>
+        <tr>
+            <td>Lucide React</td>
+            <td>-</td>
+            <td>Icon library</td>
+        </tr>
+        <tr>
+            <td>@react-google-maps/api</td>
+            <td>-</td>
+            <td>Google Maps integration</td>
+        </tr>
+    </table>
+
+    <h3>5.2 Backend</h3>
+    <table>
+        <tr>
+            <th>Technology</th>
+            <th>Version</th>
+            <th>Purpose</th>
+        </tr>
+        <tr>
+            <td>Node.js</td>
+            <td>18+</td>
+            <td>JavaScript runtime</td>
+        </tr>
+        <tr>
+            <td>Express.js</td>
+            <td>4.x</td>
+            <td>Web server framework</td>
+        </tr>
+        <tr>
+            <td>Socket.IO</td>
+            <td>4.x</td>
+            <td>Real-time WebSocket server</td>
+        </tr>
+        <tr>
+            <td>Mongoose</td>
+            <td>8.x</td>
+            <td>MongoDB ODM</td>
+        </tr>
+        <tr>
+            <td>Firebase Admin SDK</td>
+            <td>12.x</td>
+            <td>Server-side token verification</td>
+        </tr>
+        <tr>
+            <td>Cashfree PG SDK</td>
+            <td>-</td>
+            <td>Payment gateway integration</td>
+        </tr>
+        <tr>
+            <td>CORS</td>
+            <td>-</td>
+            <td>Cross-origin resource sharing</td>
+        </tr>
+        <tr>
+            <td>dotenv</td>
+            <td>-</td>
+            <td>Environment variable management</td>
+        </tr>
+    </table>
+
+    <h3>5.3 Database</h3>
+    <table>
+        <tr>
+            <th>Technology</th>
+            <th>Purpose</th>
+        </tr>
+        <tr>
+            <td>MongoDB Atlas</td>
+            <td>Cloud-hosted NoSQL database</td>
+        </tr>
+        <tr>
+            <td>GeoJSON</td>
+            <td>Location storage format for geospatial queries</td>
+        </tr>
+        <tr>
+            <td>2dsphere Index</td>
+            <td>Enables $near and $geoWithin queries</td>
+        </tr>
+    </table>
+
+    <h3>5.4 Deployment</h3>
+    <table>
+        <tr>
+            <th>Service</th>
+            <th>Platform</th>
+        </tr>
+        <tr>
+            <td>Backend</td>
+            <td>Render.com (Free Tier)</td>
+        </tr>
+        <tr>
+            <td>Frontend</td>
+            <td>Netlify / Vercel</td>
+        </tr>
+        <tr>
+            <td>Database</td>
+            <td>MongoDB Atlas (M0 Free Tier)</td>
+        </tr>
+        <tr>
+            <td>Version Control</td>
+            <td>GitHub</td>
+        </tr>
+    </table>
+
+    <!-- SECTION 6 -->
+    <h2 id="database">6. Database Design</h2>
+
+    <h3>6.1 User Collection</h3>
+    <p>Unified schema for Customers, Providers, and Admins.</p>
+    <pre><code>{
+  // Identity
+  name: String (required),
+  email: String (required, unique),
+  phone: String (unique, sparse),
+  photoUrl: String,
+  role: String ['user' | 'provider' | 'admin'],
+  createdAt: Date,
+  
+  // Customer: Vehicles Array
+  vehicles: [{
+    model: String,
+    fuelType: ['Petrol', 'Diesel', 'CNG', 'Electric'],
+    plateNumber: String
+  }],
+  
+  // Provider: Shop Details
+  shopName: String,
+  address: String,
+  providerCategory: ['Mechanic', 'Fuel Delivery', 'EV Support'],
+  services: [{ name: String, active: Boolean }],
+  isOnline: Boolean,
+  isVerified: Boolean,
+  
+  // Provider: Locations (GeoJSON)
+  location: {  // Permanent shop location
+    type: 'Point',
+    coordinates: [longitude, latitude]
+  },
+  liveLocation: {  // Real-time GPS position
+    type: 'Point',
+    coordinates: [longitude, latitude]
+  },
+  
+  // Provider: Verification Documents
+  verificationDocs: {
+    shopPhoto: String (URL),
+    businessProof: String (URL)
+  },
+  
+  // Provider: Pending Profile Updates
+  pendingUpdate: {
+    status: ['Pending', 'Rejected', 'None'],
+    data: { shopName, address, phone, location },
+    requestedAt: Date
+  },
+  
+  // Ratings
+  averageRating: Number,
+  totalReviews: Number
+}
+
+// Indexes
+{ location: '2dsphere' }  // For geospatial queries
+</code></pre>
+
+    <h3>6.2 Request Collection</h3>
+    <p>Tracks the complete lifecycle of a service request.</p>
+    <pre><code>{
+  // Participants
+  customer: ObjectId (ref: User),
+  provider: ObjectId (ref: User),
+  
+  // Service Details
+  category: ['Mechanic', 'Fuel Delivery', 'EV Support'],
+  serviceTypes: [String],  // e.g., ['Flat Tire', 'Dead Battery']
+  
+  // Fuel-Specific (if category = 'Fuel Delivery')
+  fuelDetails: {
+    fuelType: ['Petrol', 'Diesel'],
+    quantity: Number,  // Litres
+    rate: Number       // Per litre cost
+  },
+  
+  // Location
+  location: {
+    type: 'Point',
+    coordinates: [longitude, latitude],
+    address: String
+  },
+  
+  // Vehicle Info
+  vehicle: {
+    model: String,
+    plateNumber: String,
+    fuelType: String
+  },
+  
+  // Status Lifecycle
+  status: ['Pending', 'Accepted', 'Arrived', 'In Progress', 'Completed', 'Cancelled', 'Expired'],
+  
+  // Pricing (Locked at creation time)
+  pricing: {
+    baseFee: Number,
+    pricePerKm: Number,
+    distanceMetric: Number,  // km
+    distanceFee: Number,
+    materialCost: Number,
+    totalAmount: Number
+  },
+  
+  // Timestamps
+  timestamps: {
+    createdAt: Date,
+    acceptedAt: Date,
+    completedAt: Date
+  },
+  
+  // Security: OTP Verification
+  serviceOtp: String (4 digits),
+  otpVerified: Boolean,
+  otpGeneratedAt: Date,
+  otpVerifiedAt: Date,
+  
+  // Assignment (if provider sends a technician)
+  assignedPerson: {
+    name: String,
+    phone: String
+  },
+  
+  // Billing
+  bill: [{ name: String, cost: Number }],
+  billSent: Boolean,
+  billSentAt: Date,
+  
+  // Payment
+  paymentStatus: ['pending', 'success', 'failed'],
+  paymentId: String,
+  paymentCompletedAt: Date,
+  
+  // Optional
+  problemPhotoUrl: String,
+  chatHistory: [{ sender: String, message: String, timestamp: Date }]
+}
+</code></pre>
+
+    <h3>6.3 ServiceRate Collection</h3>
+    <p>Admin-configurable pricing for each service type.</p>
+    <pre><code>{
+  serviceName: String (unique),
+  category: ['Mechanic', 'Fuel Delivery', 'EV Support'],
+  fuelType: ['Petrol', 'Diesel', null],  // Only for Fuel Delivery
+  
+  basePrice: Number,      // Base service fee
+  pricePerKm: Number,     // Distance-based charge
+  pricePerLitre: Number,  // Only for fuel
+  
+  description: String,
+  updatedAt: Date
+}
+
+// Seeded defaults:
+- Flat Tire: ₹300 base
+- Dead Battery: ₹500 base
+- Towing: ₹1200 base + ₹40/km
+- Fuel Delivery: ₹200 base
+- Key Lockout: ₹600 base
+- Mobile EV Charging: ₹800 base
+</code></pre>
+
+    <h3>6.4 Review Collection</h3>
+    <p>Bidirectional rating system between users and providers.</p>
+    <pre><code>{
+  request: ObjectId (ref: Request),
+  
+  reviewer: ObjectId (ref: User),
+  reviewerType: ['User', 'Provider'],
+  
+  reviewee: ObjectId (ref: User),
+  revieweeType: ['User', 'Provider'],
+  
+  rating: Number (1-5),
+  comment: String (max 500 chars),
+  serviceTypes: [String],
+  createdAt: Date
+}
+
+// Indexes for efficient queries
+{ reviewee: 1, revieweeType: 1 }
+{ reviewer: 1, reviewerType: 1 }
+{ request: 1 }
+
+// Static Method: getAverageRating(userId, userType)
+// Returns { averageRating, totalReviews } using MongoDB aggregation
+</code></pre>
+
+    <h3>6.5 Announcement Collection</h3>
+    <pre><code>{
+  title: String,
+  message: String,
+  target: ['all', 'providers', 'users'],
+  createdBy: ObjectId (ref: User),
+  createdAt: Date
+}
+</code></pre>
+
+    <!-- SECTION 7 -->
+    <h2 id="api">7. Complete API Reference</h2>
+
+    <h3>7.1 Authentication Endpoints</h3>
+    <table>
+        <tr>
+            <th>Method</th>
+            <th>Endpoint</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/auth/register</code></td>
+            <td>Register new user/provider with Firebase token</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/auth/login</code></td>
+            <td>Login existing user, returns profile</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-get">GET</span></td>
+            <td><code>/api/auth/profile/:userId</code></td>
+            <td>Get user profile by ID</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-put">PUT</span></td>
+            <td><code>/api/auth/update-profile</code></td>
+            <td>Update name, phone</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/auth/add-vehicle</code></td>
+            <td>Add vehicle to user's array</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-put">PUT</span></td>
+            <td><code>/api/auth/vehicle/:vehicleId</code></td>
+            <td>Update specific vehicle</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-delete">DELETE</span></td>
+            <td><code>/api/auth/delete-vehicle</code></td>
+            <td>Remove vehicle from array</td>
+        </tr>
+    </table>
+
+    <h4>Example: Register Request</h4>
+    <pre><code>POST /api/auth/register
+Content-Type: application/json
+
+{
+  "idToken": "eyJhbGciOiJS...",  // Firebase ID Token
+  "name": "John Doe",
+  "role": "user",  // or "provider"
+  "vehicleDetails": {
+    "model": "Honda City",
+    "fuelType": "Petrol",
+    "plateNumber": "MH12AB1234"
+  },
+  // Provider only:
+  "shopName": "Quick Fix Garage",
+  "providerCategory": ["Mechanic"],
+  "services": ["Flat Tire", "Dead Battery"],
+  "address": "123 Main St, Mumbai",
+  "location": {
+    "type": "Point",
+    "coordinates": [72.8777, 19.0760]
+  },
+  "shopPhotoUrl": "https://..."
+}
+</code></pre>
+
+    <h3>7.2 Request Endpoints</h3>
+    <table>
+        <tr>
+            <th>Method</th>
+            <th>Endpoint</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/request/search-providers</code></td>
+            <td>Find nearby providers (geospatial)</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/request/create</code></td>
+            <td>Create new service request</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/request/accept</code></td>
+            <td>Provider accepts request</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/request/update-status</code></td>
+            <td>Update status (Arrived, etc.)</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/request/verify-otp</code></td>
+            <td>Verify customer OTP</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/request/send-bill</code></td>
+            <td>Send itemized bill to customer</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/request/confirm-payment</code></td>
+            <td>Mark payment as complete</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/request/cancel</code></td>
+            <td>Cancel active request</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-get">GET</span></td>
+            <td><code>/api/request/user/:userId/active</code></td>
+            <td>Get user's active request</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-get">GET</span></td>
+            <td><code>/api/request/user/:userId/history</code></td>
+            <td>Get user's past requests</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-get">GET</span></td>
+            <td><code>/api/request/provider/:providerId</code></td>
+            <td>Get provider's incoming requests</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-get">GET</span></td>
+            <td><code>/api/request/provider/:providerId/stats</code></td>
+            <td>Get provider earnings and rating</td>
+        </tr>
+    </table>
+
+    <h4>Example: Search Providers (The Core Algorithm)</h4>
+    <pre><code>POST /api/request/search-providers
+Content-Type: application/json
+
+{
+  "category": "Mechanic",
+  "serviceNames": ["Flat Tire"],
+  "originLat": 19.0760,
+  "originLng": 72.8777
+}
+
+// Response
+[
+  {
+    "provider": {
+      "id": "65a1b2c3d4e5f6...",
+      "name": "Quick Fix Garage",
+      "shopName": "Quick Fix",
+      "rating": 4.8,
+      "totalReviews": 42,
+      "photoUrl": "https://...",
+      "location": { "type": "Point", "coordinates": [72.8800, 19.0800] }
+    },
+    "distance": "2.35",      // km
+    "baseFee": 300,
+    "pricePerKm": 10,
+    "distanceFee": "23.50",
+    "totalEstimate": 324     // Rounded up
+  },
+  // ... more providers
+]
+</code></pre>
+
+    <h3>7.3 Payment Endpoints</h3>
+    <table>
+        <tr>
+            <th>Method</th>
+            <th>Endpoint</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/payment/create-order</code></td>
+            <td>Create Cashfree payment order</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/payment/verify-payment</code></td>
+            <td>Verify payment status with Cashfree</td>
+        </tr>
+    </table>
+
+    <h3>7.4 Admin Endpoints</h3>
+    <table>
+        <tr>
+            <th>Method</th>
+            <th>Endpoint</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td><span class="badge badge-get">GET</span></td>
+            <td><code>/api/admin-features/analytics</code></td>
+            <td>Dashboard stats and growth data</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-get">GET</span></td>
+            <td><code>/api/admin-features/service-rates</code></td>
+            <td>Get all service pricing</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/admin-features/service-rates</code></td>
+            <td>Add new service rate</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-put">PUT</span></td>
+            <td><code>/api/admin-features/service-rates/:id</code></td>
+            <td>Update service rate</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-delete">DELETE</span></td>
+            <td><code>/api/admin-features/service-rates/:id</code></td>
+            <td>Delete service rate</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-get">GET</span></td>
+            <td><code>/api/admin-features/announcements</code></td>
+            <td>Get all announcements</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/admin-features/announcements</code></td>
+            <td>Create announcement (broadcasts via Socket)</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-delete">DELETE</span></td>
+            <td><code>/api/admin-features/announcements/:id</code></td>
+            <td>Delete announcement</td>
+        </tr>
+    </table>
+
+    <h3>7.5 Provider Management Endpoints</h3>
+    <table>
+        <tr>
+            <th>Method</th>
+            <th>Endpoint</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/auth/toggle-status</code></td>
+            <td>Toggle online/offline</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/auth/add-service</code></td>
+            <td>Add service to offerings</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/auth/toggle-service</code></td>
+            <td>Enable/disable specific service</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/auth/request-profile-update</code></td>
+            <td>Request shop/location change</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-get">GET</span></td>
+            <td><code>/api/auth/pending-providers</code></td>
+            <td>List unverified providers</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/auth/verify-provider</code></td>
+            <td>Approve provider</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/auth/reject-provider</code></td>
+            <td>Reject and delete provider</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/auth/revoke-verification</code></td>
+            <td>Deactivate verified provider</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/auth/approve-profile-update</code></td>
+            <td>Apply pending profile changes</td>
+        </tr>
+    </table>
+
+    <!-- SECTION 8 -->
+    <h2 id="logic">8. Core Algorithm & Logic</h2>
+
+    <h3>8.1 Provider Matching Algorithm</h3>
+    <p>The search algorithm uses MongoDB's geospatial capabilities to find optimal providers.</p>
+
+    <pre><code>// File: server/controllers/requestController.js
+
+exports.searchProviders = async (req, res) => {
+    const { serviceName, originLat, originLng, category } = req.body;
+    
+    // Build geospatial query
+    const query = {
+        role: 'provider',
+        isVerified: true,    // Only verified providers
+        isOnline: true,      // Only active providers
+        providerCategory: category,
+        location: {
+            $near: {
+                $geometry: { 
+                    type: "Point", 
+                    coordinates: [originLng, originLat] 
+                },
+                $maxDistance: 50000  // 50km radius
+            }
+        },
+        // Must offer the requested service
+        services: {
+            $elemMatch: { 
+                name: { $regex: new RegExp(`^${serviceName}$`, 'i') }, 
+                active: true 
+            }
+        }
+    };
+    
+    // Find providers (automatically sorted by distance due to $near)
+    const providers = await User.find(query).limit(50);
+    
+    // Calculate pricing for each provider
+    const results = providers.map(provider => {
+        const distance = calculateHaversineDistance(
+            originLat, originLng,
+            provider.location.coordinates[1],
+            provider.location.coordinates[0]
+        );
+        
+        const distanceFee = distance * pricePerKm;
+        const totalEstimate = baseFee + distanceFee;
+        
+        return {
+            provider: { id, name, shopName, rating, location },
+            distance: distance.toFixed(2),
+            baseFee,
+            distanceFee: distanceFee.toFixed(2),
+            totalEstimate: Math.ceil(totalEstimate)
+        };
+    });
+    
+    res.json(results);
+};
+</code></pre>
+
+    <h3>8.2 Haversine Distance Formula</h3>
+    <pre><code>// Calculate distance between two lat/lng points on Earth
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371;  // Earth's radius in km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+              
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;  // Distance in km
+};
+</code></pre>
+
+    <h3>8.3 Pricing Formula</h3>
+    <div class="note">
+        <strong>Total Price = Base Fee + (Distance × Rate per km) + Material Cost</strong>
+        <p>For Fuel Delivery: Total = Base Fee + (Distance × Rate) + (Litres × Price per Litre)</p>
+    </div>
+
+    <!-- SECTION 9 -->
+    <h2 id="realtime">9. Real-Time Features</h2>
+
+    <h3>9.1 Socket.IO Events</h3>
+    <table>
+        <tr>
+            <th>Event</th>
+            <th>Direction</th>
+            <th>Payload</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td><code>connection</code></td>
+            <td>←</td>
+            <td>-</td>
+            <td>Client connects</td>
+        </tr>
+        <tr>
+            <td><code>join_room</code></td>
+            <td>→</td>
+            <td><code>roomId</code></td>
+            <td>Join request-specific room</td>
+        </tr>
+        <tr>
+            <td><code>provider_location_update</code></td>
+            <td>→</td>
+            <td><code>{roomId, userId, location}</code></td>
+            <td>Provider sends GPS coordinates</td>
+        </tr>
+        <tr>
+            <td><code>track_provider</code></td>
+            <td>←</td>
+            <td><code>{lat, lng}</code></td>
+            <td>Broadcast provider position to user</td>
+        </tr>
+        <tr>
+            <td><code>update_location</code></td>
+            <td>→</td>
+            <td><code>{userId, location}</code></td>
+            <td>Background location update (no active job)</td>
+        </tr>
+        <tr>
+            <td><code>new_request</code></td>
+            <td>←</td>
+            <td><code>Request object</code></td>
+            <td>New request notification to provider</td>
+        </tr>
+        <tr>
+            <td><code>request_accepted</code></td>
+            <td>←</td>
+            <td><code>Request object</code></td>
+            <td>Notify user their request was accepted</td>
+        </tr>
+        <tr>
+            <td><code>request_cancelled</code></td>
+            <td>←</td>
+            <td><code>{requestId, reason}</code></td>
+            <td>Notify cancellation</td>
+        </tr>
+        <tr>
+            <td><code>bill_received</code></td>
+            <td>←</td>
+            <td><code>{bill, totalAmount}</code></td>
+            <td>Bill sent to customer</td>
+        </tr>
+        <tr>
+            <td><code>payment_confirmed</code></td>
+            <td>←</td>
+            <td><code>{paymentStatus}</code></td>
+            <td>Payment status to provider</td>
+        </tr>
+        <tr>
+            <td><code>new_announcement</code></td>
+            <td>←</td>
+            <td><code>Announcement object</code></td>
+            <td>Admin broadcast</td>
+        </tr>
+    </table>
+
+    <h3>9.2 Real-Time Tracking Implementation</h3>
+
+    <h4>Provider Side (ProviderDashboard.jsx)</h4>
+    <pre><code>// Start watching GPS position
+const watchId = navigator.geolocation.watchPosition(
+    (position) => {
+        if (isSimulating) return;  // Skip if simulation mode
+        
+        const { latitude, longitude } = position.coords;
+        
+        // Emit to server
+        const payload = {
+            location: { lat: latitude, lng: longitude },
+            userId: userId
+        };
+        
+        if (activeJob) {
+            payload.roomId = activeJob._id;
+            socket.emit('provider_location_update', payload);
+        } else {
+            socket.emit('update_location', payload);
+        }
+    },
+    (error) => console.error("GPS Error:", error),
+    { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+);
+</code></pre>
+
+    <h4>Server Side (index.js)</h4>
+    <pre><code>io.on('connection', (socket) => {
+    socket.on('provider_location_update', async ({ roomId, userId, location }) => {
+        // Broadcast to user in room
+        if (roomId) {
+            io.to(roomId).emit('track_provider', location);
+        }
+        
+        // Persist to database
+        if (userId) {
+            await User.findByIdAndUpdate(userId, {
+                liveLocation: {
+                    type: 'Point',
+                    coordinates: [location.lng, location.lat]
+                },
+                isOnline: true
+            });
+        }
+    });
+});
+</code></pre>
+
+    <h4>User Side (Dashboard.jsx)</h4>
+    <pre><code>// Listen for provider location updates
+useEffect(() => {
+    socket.on('track_provider', (coords) => {
+        setProviderLocation(coords);
+    });
+    
+    return () => socket.off('track_provider');
+}, []);
+
+// Render on map
+{providerLocation && (
+    <Marker
+        position={providerLocation}
+        icon={{
+            path: CAR_SYMBOL,
+            fillColor: '#4F46E5',
+            rotation: calculateHeading(prevLoc, providerLocation)
+        }}
+    />
+)}
+</code></pre>
+
+    <!-- SECTION 10 -->
+    <h2 id="payment">10. Payment Integration (Cashfree)</h2>
+
+    <h3>10.1 Payment Flow</h3>
+    <ol>
+        <li>Provider clicks "Send Bill" → Bill items stored in Request</li>
+        <li>Customer receives bill via Socket event</li>
+        <li>Customer clicks "Pay" → Frontend calls <code>/api/payment/create-order</code></li>
+        <li>Server creates Cashfree order, returns <code>payment_session_id</code></li>
+        <li>Frontend opens Cashfree SDK with session ID</li>
+        <li>User completes payment in Cashfree UI</li>
+        <li>Cashfree redirects back with order status</li>
+        <li>Frontend calls <code>/api/request/confirm-payment</code></li>
+        <li>Request status updated to "Completed"</li>
+        <li>Provider notified via Socket</li>
+    </ol>
+
+    <h3>10.2 Create Order Implementation</h3>
+    <pre><code>// server/routes/paymentRoutes.js
+
+router.post('/create-order', async (req, res) => {
+    const { orderAmount, customerId, customerPhone, customerName } = req.body;
+    
+    const orderId = `ORDER_${Date.now()}`;
+    
+    const request = {
+        order_amount: orderAmount,
+        order_currency: "INR",
+        order_id: orderId,
+        customer_details: {
+            customer_id: customerId,
+            customer_phone: customerPhone,
+            customer_name: customerName || "Customer"
+        },
+        order_meta: {
+            return_url: "https://fuelnfix.com/return?order_id={order_id}"
+        },
+        order_note: "FuelnFix - Roadside Assistance"
+    };
+    
+    const cashfree = new Cashfree(
+        CFEnvironment.SANDBOX,  // Change to PRODUCTION for live
+        process.env.CASHFREE_APP_ID,
+        process.env.CASHFREE_SECRET_KEY
+    );
+    
+    const response = await cashfree.PGCreateOrder(request);
+    res.json(response.data);  // Contains payment_session_id
+});
+</code></pre>
+
+    <!-- SECTION 11 -->
+    <h2 id="manual">11. User Manual</h2>
+
+    <h3>11.1 Customer Guide</h3>
+
+    <h4>Step 1: Registration</h4>
+    <ol>
+        <li>Open FuelNFix and click "Get Started"</li>
+        <li>Sign in with your Google account</li>
+        <li>Select "I need help" (Customer role)</li>
+        <li>Add your vehicle details (optional but recommended)</li>
+        <li>Allow location permission when prompted</li>
+    </ol>
+
+    <h4>Step 2: Requesting Service</h4>
+    <ol>
+        <li>From the Dashboard, click "Request Help"</li>
+        <li>Select your vehicle from the list (or add a new one)</li>
+        <li>Choose the issue type (e.g., "Flat Tire")</li>
+        <li>Confirm your location on the map</li>
+        <li>Review the estimated price and available providers</li>
+        <li>Select a provider and click "Confirm Request"</li>
+    </ol>
+
+    <div class="note">
+        <strong>Tip:</strong> You can select multiple services if needed. The price will be calculated for all services
+        combined.
+    </div>
+
+    <h4>Step 3: Tracking & Verification</h4>
+    <ol>
+        <li>Wait for a provider to accept (you'll hear a notification sound)</li>
+        <li>Watch the provider approach on the live map</li>
+        <li>When they arrive, you'll see a <strong>4-digit OTP</strong> on your screen</li>
+        <li><strong>Only share this OTP</strong> when you physically see the provider</li>
+        <li>The job begins once OTP is verified</li>
+    </ol>
+
+    <div class="warning">
+        <strong>Security:</strong> Never share your OTP over phone or before verifying the provider's identity.
+    </div>
+
+    <h4>Step 4: Payment & Receipt</h4>
+    <ol>
+        <li>After service completion, you'll receive a digital bill</li>
+        <li>Review the itemized charges (service fee + materials)</li>
+        <li>Click "Pay Securely" to open the payment gateway</li>
+        <li>Complete payment using UPI, Card, or Netbanking</li>
+        <li>Download your receipt for records/insurance claims</li>
+    </ol>
+
+    <h3>11.2 Provider Guide</h3>
+
+    <h4>Onboarding</h4>
+    <ol>
+        <li>Register with Google and select "I provide services"</li>
+        <li>Enter your shop name and address</li>
+        <li>Select your category (Mechanic, Fuel Delivery, or EV Support)</li>
+        <li>Choose the services you offer from the list</li>
+        <li>Upload your shop photo and business proof document</li>
+        <li>Set your shop location on the map</li>
+        <li>Submit for verification (wait 24-48 hours)</li>
+    </ol>
+
+    <h4>Daily Operations</h4>
+    <ol>
+        <li><strong>Go Online:</strong> Toggle the switch in Provider Dashboard</li>
+        <li><strong>Receive Request:</strong> A popup shows distance, service type, and estimated earnings</li>
+        <li><strong>60-Second Timer:</strong> Accept or reject within the time limit</li>
+        <li><strong>Navigate:</strong> Click the navigation button to open Google Maps</li>
+        <li><strong>Verify OTP:</strong> Ask the customer for their 4-digit code</li>
+        <li><strong>Complete Work:</strong> Perform the service</li>
+        <li><strong>Generate Bill:</strong> Add any material costs and send the bill</li>
+        <li><strong>Receive Payment:</strong> Customer pays through the app</li>
+    </ol>
+
+    <h3>11.3 Admin Guide</h3>
+
+    <h4>Accessing Admin Dashboard</h4>
+    <p>Navigate to <code>/admin</code>. Only users with <code>role: 'admin'</code> can access.</p>
+
+    <h4>Provider Verification</h4>
+    <ol>
+        <li>Go to "Pending Verification" tab</li>
+        <li>Click on a provider to expand details</li>
+        <li>View uploaded documents (shop photo, business proof)</li>
+        <li>Click "Approve" to activate or "Reject" to delete</li>
+    </ol>
+
+    <h4>Managing Service Rates</h4>
+    <ol>
+        <li>Go to "Pricing" tab</li>
+        <li>Edit base price, per-km rate, or per-litre rate</li>
+        <li>Changes apply immediately to new searches</li>
+    </ol>
+
+    <h4>Sending Announcements</h4>
+    <ol>
+        <li>Go to "Broadcasts" tab</li>
+        <li>Enter title and message</li>
+        <li>Select target audience (All, Users only, Providers only)</li>
+        <li>Click "Send Broadcast"</li>
+        <li>Message is immediately pushed to all connected clients</li>
+    </ol>
+
+    <!-- SECTION 12 -->
+    <h2 id="deploy">12. Deployment Guide</h2>
+
+    <h3>12.1 Prerequisites</h3>
+    <ul>
+        <li>Node.js 18+ installed locally</li>
+        <li>MongoDB Atlas account with cluster</li>
+        <li>Firebase project with Authentication enabled</li>
+        <li>Cashfree account with API credentials</li>
+        <li>GitHub repository with code</li>
+    </ul>
+
+    <h3>12.2 Backend Deployment (Render)</h3>
+
+    <h4>Step 1: Create Web Service</h4>
+    <ol>
+        <li>Go to <a href="https://render.com">render.com</a> and sign in</li>
+        <li>Click "New" → "Web Service"</li>
+        <li>Connect your GitHub repository</li>
+        <li>Configure:
+            <ul>
+                <li><strong>Name:</strong> fuelnfix-backend</li>
+                <li><strong>Region:</strong> Singapore (or nearest)</li>
+                <li><strong>Branch:</strong> main</li>
+                <li><strong>Root Directory:</strong> server</li>
+                <li><strong>Build Command:</strong> <code>npm install</code></li>
+                <li><strong>Start Command:</strong> <code>node index.js</code></li>
+            </ul>
+        </li>
+    </ol>
+
+    <h4>Step 2: Environment Variables</h4>
+    <table>
+        <tr>
+            <th>Variable</th>
+            <th>Value</th>
+        </tr>
+        <tr>
+            <td><code>MONGO_URI</code></td>
+            <td><code>mongodb+srv://username:password@cluster.mongodb.net/fuelnfix</code></td>
+        </tr>
+        <tr>
+            <td><code>NODE_ENV</code></td>
+            <td><code>production</code></td>
+        </tr>
+        <tr>
+            <td><code>CASHFREE_APP_ID</code></td>
+            <td>Your Cashfree App ID</td>
+        </tr>
+        <tr>
+            <td><code>CASHFREE_SECRET_KEY</code></td>
+            <td>Your Cashfree Secret Key</td>
+        </tr>
+        <tr>
+            <td><code>FIREBASE_SERVICE_ACCOUNT</code></td>
+            <td>Entire JSON content of <code>serviceAccountKey.json</code></td>
+        </tr>
+    </table>
+
+    <div class="warning">
+        <strong>Important:</strong> For FIREBASE_SERVICE_ACCOUNT, paste the entire JSON file content as a single-line
+        string.
+    </div>
+
+    <h4>Step 3: Deploy</h4>
+    <p>Click "Create Web Service". Render will build and deploy automatically. Note your URL (e.g.,
+        <code>https://fuelnfix-backend.onrender.com</code>)
+    </p>
+
+    <h3>12.3 Frontend Deployment (Netlify)</h3>
+
+    <h4>Step 1: Update API URL</h4>
+    <p>Edit <code>client/src/lib/api.js</code>:</p>
+    <pre><code>const PROD_API = 'https://fuelnfix-backend.onrender.com';
+</code></pre>
+
+    <h4>Step 2: Build & Deploy</h4>
+    <pre><code>cd client
+npm run build
+netlify deploy --prod --dir=dist
+</code></pre>
+
+    <p>Or connect GitHub to Netlify for automatic deployments.</p>
+
+    <h3>12.4 Post-Deployment Checklist</h3>
+    <ul>
+        <li>☐ Verify Google Sign-In works</li>
+        <li>☐ Test provider registration flow</li>
+        <li>☐ Verify geolocation permissions work</li>
+        <li>☐ Test provider search with real GPS</li>
+        <li>☐ Complete a full request flow (Request → Accept → OTP → Bill → Pay)</li>
+        <li>☐ Check admin dashboard accessibility</li>
+    </ul>
+
+    <!-- SECTION 13 -->
+    <h2 id="security">13. Security Considerations</h2>
+
+    <h3>13.1 Authentication</h3>
+    <ul>
+        <li>Firebase handles identity (Google OAuth, Phone Auth)</li>
+        <li>Backend verifies Firebase ID tokens on every authenticated request</li>
+        <li>No passwords stored locally (delegated to Firebase)</li>
+    </ul>
+
+    <h3>13.2 Data Protection</h3>
+    <ul>
+        <li>All API communication over HTTPS</li>
+        <li>MongoDB Atlas encrypts data at rest</li>
+        <li>Sensitive keys stored in environment variables, never in code</li>
+        <li><code>.gitignore</code> excludes <code>.env</code>, <code>serviceAccountKey.json</code></li>
+    </ul>
+
+    <h3>13.3 OTP Verification</h3>
+    <ul>
+        <li>4-digit OTP generated server-side on request acceptance</li>
+        <li>OTP only visible to customer, provider must ask verbally</li>
+        <li>Job cannot start without OTP verification</li>
+        <li>Prevents unauthorized service starts and fraud</li>
+    </ul>
+
+    <h3>13.4 Location Privacy</h3>
+    <ul>
+        <li>Live location only broadcast to request-specific "room"</li>
+        <li>Only the customer and assigned provider can see tracking</li>
+        <li>Location stops broadcasting when job completes</li>
+    </ul>
+
+    <!-- SECTION 14 -->
+    <h2 id="faq">14. FAQ & Troubleshooting</h2>
+
+    <h4>Q: Provider search returns empty results</h4>
+    <p><strong>A:</strong> Check that providers have: (1) <code>isVerified: true</code>, (2)
+        <code>isOnline: true</code>, (3) Valid <code>location.coordinates</code>, (4) The requested service in their
+        <code>services</code> array with <code>active: true</code>.
+    </p>
+
+    <h4>Q: CORS error in browser console</h4>
+    <p><strong>A:</strong> Ensure your frontend URL is added to the CORS whitelist in <code>server/index.js</code>.</p>
+
+    <h4>Q: Google Maps not loading</h4>
+    <p><strong>A:</strong> Verify your Google Maps API key has Maps JavaScript API enabled and your domain is
+        whitelisted in Google Cloud Console.</p>
+
+    <h4>Q: Socket.IO not connecting</h4>
+    <p><strong>A:</strong> Check that both frontend and backend are using compatible Socket.IO versions (both v4.x).
+        Verify the socket URL matches your backend URL.</p>
+
+    <h4>Q: Payment fails with "Invalid credentials"</h4>
+    <p><strong>A:</strong> Ensure <code>CASHFREE_APP_ID</code> and <code>CASHFREE_SECRET_KEY</code> are correct. For
+        testing, use Sandbox credentials.</p>
+
+    <h4>Q: "Can't extract geo keys" MongoDB error</h4>
+    <p><strong>A:</strong> Location coordinates must be in GeoJSON format: <code>[longitude, latitude]</code> (not lat,
+        lng). Ensure they are Numbers, not Strings.</p>
+
+    <hr>
+
+    <p style="text-align: center; color: #9ca3af; margin-top: 3em;">
+        <strong>FuelNFix</strong> — Roadside Assistance, Redefined<br>
+        © 2026 All Rights Reserved
+    </p>
+
+</body>
+
+</html>

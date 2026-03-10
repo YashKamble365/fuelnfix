@@ -39,7 +39,9 @@ const RequestSchema = new mongoose.Schema({
         pricePerKm: { type: Number },
         distanceFee: { type: Number },
         materialCost: { type: Number, default: 0 },
-        totalAmount: { type: Number }
+        totalAmount: { type: Number },
+        platformFee: { type: Number, default: 0 }, // 5% Cut
+        providerEarnings: { type: Number, default: 0 } // Net Earnings
     },
     timestamps: {
         createdAt: { type: Date, default: Date.now },

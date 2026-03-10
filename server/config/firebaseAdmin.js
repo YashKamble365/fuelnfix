@@ -11,7 +11,8 @@ try {
 }
 
 admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+    credential: admin.credential.cert(serviceAccount),
+    storageBucket: "fuelnfix-5a36d.firebasestorage.app"
 });
 
 module.exports = admin;

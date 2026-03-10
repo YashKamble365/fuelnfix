@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FuelNFix - Deep Code Walkthrough</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        :root {
+            --primary: #4f46e5;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --code-bg: #1e293b;
+            --code-text: #e2e8f0;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0f172a;
+                --surface: #1e293b;
+                --text: #f8fafc;
+                --text-muted: #94a3b8;
+                --border: #334155;
+            }
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #4f46e5 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+        }
+
+        .component-section {
+            background: var(--surface);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 60px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .section-header {
+            padding: 30px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .badge.backend {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge.frontend {
+            background: #fce7f3;
+            color: #9d174d;
+        }
+
+        .badge.database {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .section-content {
+            padding: 30px;
+        }
+
+        .explanation {
+            margin-bottom: 30px;
+        }
+
+        .highlight-box {
+            background: rgba(79, 70, 229, 0.1);
+            border-left: 4px solid var(--primary);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 20px;
+            border-radius: 12px;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            position: relative;
+        }
+
+        .code-annotation {
+            color: #94a3b8;
+            font-style: italic;
+            display: block;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 5px;
+        }
+
+        .print-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);
+            cursor: pointer;
+            transition: transform 0.2s;
+            z-index: 100;
+        }
+
+        .print-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        @media print {
+            .print-btn {
+                display: none;
+            }
+
+            body {
+                background: white;
+                color: black;
+            }
+
+            .component-section {
+                box-shadow: none;
+                border: 1px solid #ccc;
+                break-inside: avoid;
+            }
+
+            pre {
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                background: #f5f5f5;
+                color: black;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <button class="print-btn" onclick="window.print()">🖨️ Save as PDF</button>
+
+    <div class="container">
+        <header>
+            <h1>FuelNFix Architect's Guide</h1>
+            <p class="subtitle">A Deep Dive into the Codebase, Critical Logic, and Component Implementation</p>
+        </header>
+
+        <!-- 1. BACKEND ENTRY POINT -->
+        <div class="component-section" id="backend-entry">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="badge backend">Backend</span>
+                    Server Entry Point (index.js)
+                </h2>
+            </div>
+            <div class="section-content">
+                <div class="explanation">
+                    <h3>Component Overview</h3>
+                    <p>This is the heart of the backend. It initializes the Express app, connects to MongoDB, and most
+                        importantly, sets up the <strong>Socket.IO server</strong> for real-time communication. Queries
+                        from clients for live tracking and status updates pass through here.</p>
+
+                    <div class="highlight-box">
+                        <strong>Critical Logic:</strong> The <code>provider_location_update</code> event listener is
+                        what makes the "Uber-like" tracking possible. It broadcasts location to the user <em>and</em>
+                        updates MongoDB for geospatial queries simultaneously.
+                    </div>
+                </div>
+
+                <pre><span class="code-annotation">// server/index.js - Socket.IO & Server Setup</span>
+const express = require('express');
+const { Server } = require("socket.io");
+const User = require('./models/User');
+
+// Initialize Socket.IO with CORS
+const io = new Server(server, {
+    cors: { origin: "*" }
+});
+
+// --- REAL-TIME EVENT HANDLING ---
+io.on('connection', (socket) => {
+    
+    // 1. Join Specific Rooms (e.g., Request ID)
+    socket.on('join_room', (roomId) => {
+        socket.join(roomId);
+    });
+
+    // 2. LIVE TRACKING LOGIC
+    socket.on('provider_location_update', async ({ roomId, userId, location }) => {
+        // A. Broadcast to specific request room (User sees this)
+        if (roomId) {
+            io.to(roomId).emit('track_provider', location);
+        }
+
+        // B. Update Database for "Search Nearby" functionality
+        if (userId) {
+            await User.findByIdAndUpdate(userId, {
+                liveLocation: {
+                    type: 'Point',
+                    coordinates: [location.lng, location.lat]
+                },
+                isOnline: true
+            });
+        }
+    });
+
+    // 3. Status Updates (Accepted -> Arrived -> Completed)
+    socket.on('update_status', ({ roomId, status }) => {
+        io.to(roomId).emit('status_changed', status);
+    });
+});</pre>
+            </div>
+        </div>
+
+        <!-- 2. REQUEST CONTROLLER -->
+        <div class="component-section" id="request-controller">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="badge backend">Backend</span>
+                    The Matching Algorithm (requestController.js)
+                </h2>
+            </div>
+            <div class="section-content">
+                <div class="explanation">
+                    <h3>Component Overview</h3>
+                    <p>This controller handles the logic for finding providers. It uses <strong>MongoDB Geospatial
+                            Queries ($near)</strong> to find providers within a radius, sorts them by distance, and
+                        calculates dynamic pricing based on the distance.</p>
+                </div>
+
+                <pre><span class="code-annotation">// server/controllers/requestController.js - searchProviders function</span>
+exports.searchProviders = async (req, res) => {
+    const { serviceName, originLat, originLng, category } = req.body;
+
+    // 1. Geospatial Query
+    const query = {
+        role: 'provider',
+        isVerified: true,
+        isOnline: true,
+        providerCategory: category, // e.g., 'Mechanic'
+        location: {
+            $near: {
+                $geometry: { type: "Point", coordinates: [originLng, originLat] },
+                $maxDistance: 50000 // 50km Radius
+            }
+        },
+        // Check if provider offers the specific service (e.g., 'Flat Tire')
+        services: {
+            $elemMatch: { name: serviceName, active: true }
+        }
+    };
+
+    const providers = await User.find(query).limit(50);
+
+    // 2. Dynamic Pricing Calculation
+    const results = providers.map(provider => {
+        // Haversine Formula for precise distance
+        const distance = calculateHaversineDistance(
+            originLat, originLng, 
+            provider.location.coordinates[1], 
+            provider.location.coordinates[0]
+        );
+
+        // Get rates (simplified for demo)
+        const baseFee = 300; 
+        const pricePerKm = 10;
+        const totalEstimate = baseFee + (distance * pricePerKm);
+
+        return {
+            provider,
+            distance: distance.toFixed(2),
+            totalEstimate: Math.ceil(totalEstimate)
+        };
+    });
+
+    res.json(results);
+};</pre>
+            </div>
+        </div>
+
+        <!-- 3. FRONTEND WIZARD -->
+        <div class="component-section" id="frontend-wizard">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="badge frontend">Frontend</span>
+                    Request Wizard (RequestHelpWizard.jsx)
+                </h2>
+            </div>
+            <div class="section-content">
+                <div class="explanation">
+                    <h3>Component Overview</h3>
+                    <p>This is the most complex UI component. It manages a multi-step state machine (Select Service ->
+                        Select Vehicle -> Photo -> Location -> Provider). It switches seamlessly between a modal view
+                        and a full-screen Google Map.</p>
+
+                    <div class="highlight-box">
+                        <strong>Key Feature:</strong> The "Uber Style" dark map integration and the "Pulse" animation
+                        for provider markers on the map.
+                    </div>
+                </div>
+
+                <pre><span class="code-annotation">// client/src/components/RequestHelpWizard.jsx</span>
+const RequestHelpWizard = ({ ... }) => {
+    const [step, setStep] = useState(1);
+    
+    // Step 1: Service Selection
+    // Step 2: Vehicle Selection
+    // Step 3: Photo Upload
+    // Step 4: Confirm Location (Full Screen Map)
+    // Step 5: Provider Selection (Full Screen Map with Markers)
+
+    // Searching Logic
+    const handleSearchProviders = async () => {
+        const res = await api.post('/api/request/search-providers', {
+            originLat: confirmedLocation.lat,
+            originLng: confirmedLocation.lng,
+            // ...
+        });
+        setProviders(res.data); // Stores list of providers with pricing
+        setStep(5); // Move to final map view
+    };
+
+    // Rendering The Map (Step 5)
+    return (
+        <GoogleMap options={{ styles: UBER_STYLE }} ... >
+            
+            {/* User Location */}
+            <Marker position={confirmedLocation} />
+
+            {/* Render matched providers */}
+            {providers.map((p, index) => (
+                <OverlayView position={p.location}>
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                        <div className="provider-card-marker">
+                             <p>₹{p.totalEstimate}</p>
+                             <p>{p.distance} km</p>
+                        </div>
+                    </motion.div>
+                </OverlayView>
+            ))}
+        </GoogleMap>
+    );
+};</pre>
+            </div>
+        </div>
+
+        <!-- 4. PROVIDER DASHBOARD -->
+        <div class="component-section" id="provider-dashboard">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="badge frontend">Frontend</span>
+                    Provider Dashboard (ProviderDashboard.jsx)
+                </h2>
+            </div>
+            <div class="section-content">
+                <div class="explanation">
+                    <h3>Component Overview</h3>
+                    <p>The control center for mechanics. It handles incoming request popups (via Socket.IO), job
+                        acceptance, and the <strong>"Ghost Driver" simulation</strong> logic which animates the car
+                        movement along a real road path (using OSRM).</p>
+                </div>
+
+                <pre><span class="code-annotation">// client/src/pages/ProviderDashboard.jsx - Simulation Logic</span>
+const startSimulation = async () => {
+    // 1. Fetch Route from OSRM (Open Source Routing Machine)
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${start};${end}`;
+    const res = await fetch(osrmUrl);
+    const json = await res.json();
+    const pathPoints = decodePolyline(json.routes[0].geometry);
+
+    // 2. Animation Loop
+    const animate = () => {
+        // Calculate next position based on speed (km/h)
+        const nextPoint = calculateNextPoint(pathPoints, speed);
+        
+        // Update Local State (Provider sees car moving)
+        setUser(prev => ({ ...prev, liveLocation: nextPoint }));
+
+        // Broadcast to Server (User sees car moving)
+        socket.emit('provider_location_update', {
+            roomId: activeJob._id,
+            location: nextPoint
+        });
+
+        requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+};</pre>
+            </div>
+        </div>
+
+        <!-- 5. REAL-TIME DASHBOARD -->
+        <div class="component-section" id="user-dashboard">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="badge frontend">Frontend</span>
+                    User Dashboard (Dashboard.jsx)
+                </h2>
+            </div>
+            <div class="section-content">
+                <div class="explanation">
+                    <h3>Component Overview</h3>
+                    <p>The main hub for customers. It maintains a persistent Socket connection to listen for events like
+                        <code>request_accepted</code>, <code>track_provider</code>, and <code>bill_received</code>. It
+                        also handles the Cashfree payment flow integration.</p>
+                </div>
+
+                <pre><span class="code-annotation">// client/src/pages/Dashboard.jsx - Payment & Socket Logic</span>
+useEffect(() => {
+    // Socket Listeners
+    socket.on('request_accepted', (data) => {
+        setActiveRequest(data);
+        toast.success("Help is on the way!");
+    });
+
+    socket.on('bill_received', (billData) => {
+        setReceivedBill(billData); // Triggers "Pay Now" modal
+    });
+}, []);
+
+const handlePayBill = async () => {
+    // 1. Create Order on Backend
+    const res = await api.post('/api/payment/create-order', { amount: receivedBill.totalAmount });
+    
+    // 2. Open Cashfree SDK
+    cashfree.checkout({
+        paymentSessionId: res.data.payment_session_id,
+        redirectTarget: "_modal"
+    }).then(result => {
+        if (result.paymentDetails) {
+            // 3. Confirm Success to Backend
+            api.post('/api/request/confirm-payment', { ... });
+        }
+    });
+};</pre>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+
+</html>

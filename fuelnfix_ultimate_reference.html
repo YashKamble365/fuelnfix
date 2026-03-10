@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FuelnFix - The Ultimate Codebase Reference</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --bg: #0f172a;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --card: #1e293b;
+            --border: #334155;
+            --code-bg: #1e1e1e;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        aside {
+            width: 300px;
+            background-color: #020617;
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand {
+            padding: 1.5rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: white;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .brand span {
+            color: var(--primary);
+        }
+
+        nav {
+            padding: 1rem;
+        }
+
+        nav h3 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted);
+            margin: 1.5rem 0 0.5rem 0.5rem;
+        }
+
+        nav a {
+            display: block;
+            padding: 0.5rem 0.75rem;
+            color: var(--text);
+            text-decoration: none;
+            border-radius: 0.375rem;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+            transition: all 0.2s;
+        }
+
+        nav a:hover {
+            background-color: var(--card);
+            color: white;
+        }
+
+        nav a.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        /* Main Content */
+        main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 3rem;
+            scroll-behavior: smooth;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            letter-spacing: -0.025em;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+            color: white;
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            color: var(--primary);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #e2e8f0;
+        }
+
+        p {
+            line-height: 1.7;
+            color: var(--muted);
+            margin-bottom: 1rem;
+        }
+
+        ul {
+            margin-bottom: 1.5rem;
+            color: var(--muted);
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Cards */
+        .file-card {
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .file-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .file-name {
+            font-family: 'Monaco', monospace;
+            font-size: 1.1rem;
+            color: #60a5fa;
+            font-weight: bold;
+        }
+
+        .file-type {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            background: #0f172a;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+        }
+
+        /* Code Blocks */
+        pre {
+            background-color: var(--code-bg);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-size: 0.85rem;
+            border: 1px solid var(--border);
+        }
+
+        code {
+            font-family: 'Monaco', monospace;
+            color: #e2e8f0;
+        }
+
+        .prop {
+            color: #93c5fd;
+        }
+
+        .func {
+            color: #86efac;
+        }
+
+        .string {
+            color: #fca5a5;
+        }
+
+        .keyword {
+            color: #c4b5fd;
+        }
+
+        /* Function List */
+        .function-item {
+            border-left: 2px solid var(--border);
+            padding-left: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .function-item:hover {
+            border-left-color: var(--primary);
+        }
+
+        .function-name {
+            font-family: 'Monaco', monospace;
+            font-weight: bold;
+            color: var(--primary);
+            font-size: 0.95rem;
+        }
+
+        .function-meta {
+            font-size: 0.8rem;
+            color: var(--muted);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-right: 0.5rem;
+        }
+
+        .badge-get {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+
+        .badge-post {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+        }
+
+        .badge-put {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+        }
+
+        .badge-delete {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        /* Mermaid Placeholder */
+        .mermaid {
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--muted);
+        }
+    </style>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+    </script>
+</head>
+
+<body>
+
+    <aside>
+        <div class="brand">
+            Fuel<span>N</span>Fix <span style="font-size:0.8rem; opacity:0.6; margin-left:auto;">Docs</span>
+        </div>
+        <nav>
+            <a href="#overview">System Overview</a>
+
+            <h3>Server Core</h3>
+            <a href="#server-index">Entry Point (index.js)</a>
+            <a href="#models">Database Models</a>
+            <a href="#controllers">Controllers</a>
+            <a href="#routes">API Routes</a>
+
+            <h3>Client Pages</h3>
+            <a href="#auth-pages">Authentication</a>
+            <a href="#dashboard-user">User Dashboard</a>
+            <a href="#dashboard-provider">Provider Dashboard</a>
+            <a href="#landing">Landing Page</a>
+
+            <h3>Client Components</h3>
+            <a href="#components-map">Maps & Location</a>
+            <a href="#components-modals">Modals & Feedback</a>
+            <a href="#components-forms">Forms & Wizards</a>
+        </nav>
+    </aside>
+
+    <main>
+        <div class="container">
+
+            <section id="overview">
+                <h1>System Architecture Reference</h1>
+                <p>Welcome to the ultimate technical reference for FuelnFix. This document details every file, function,
+                    and logical flow within the application.</p>
+
+                <div class="file-card">
+                    <h3>Tech Stack</h3>
+                    <ul>
+                        <li><strong>Frontend:</strong> React.js, Vite, TailwindCSS, Framer Motion, Socket.io-client,
+                            Google Maps API</li>
+                        <li><strong>Backend:</strong> Node.js, Express.js, MongoDB (Mongoose), Socket.io, Firebase Admin
+                            (Auth)</li>
+                        <li><strong>Services:</strong> Cashfree (Payments), OSRM (Routing/Simulation), Google Geocoding
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="file-card">
+                    <h3>Database Schema Relationship</h3>
+                    <div class="mermaid">
+                        erDiagram
+                        User ||--o{ Request : "makes"
+                        Provider ||--o{ Request : "receives"
+                        User ||--o{ Review : "writes"
+                        User ||--o{ Vehicle : "owns"
+                        Request ||--o{ Review : "has"
+                        Request ||--|| Payment : "triggers"
+
+                        User {
+                        ObjectId _id
+                        string name
+                        string email
+                        string role
+                        object location
+                        }
+
+                        Request {
+                        ObjectId _id
+                        ObjectId customer
+                        ObjectId provider
+                        string status
+                        object pricing
+                        }
+
+                        Review {
+                        ObjectId _id
+                        ObjectId reviewer
+                        ObjectId reviewee
+                        int rating
+                        }
+                    </div>
+                </div>
+            </section>
+
+            <section id="server-core">
+                <h2>Server Core Files</h2>
+
+                <div id="server-index" class="file-card">
+                    <div class="file-header">
+                        <span class="file-name">server/index.js</span>
+                        <span class="file-type">Entry Point</span>
+                    </div>
+                    <p>The main application entry point. Initializes Express, MongoDB connection, and Socket.io server.
+                    </p>
+
+                    <div class="function-item">
+                        <div class="function-name">DB Connection</div>
+                        <p>Connects to MongoDB Atlas using `process.env.MONGO_URI`.</p>
+                    </div>
+                    <div class="function-item">
+                        <div class="function-name">Socket.io Logic</div>
+                        <p>Handles real-time events:</p>
+                        <ul>
+                            <li><code>join_room</code>: Users/Providers join their own ID rooms for private comms.</li>
+                            <li><code>request_help</code>: Emitted by User, broadcasted to Providers.</li>
+                            <li><code>accept_request</code>: Provider accepts, notifies User.</li>
+                            <li><code>provider_location_update</code>: Relays live GPS coords from Provider to User.
+                            </li>
+                            <li><code>request_status_update</code>: Updates phases (Arrived, Completed).</li>
+                        </ul>
+                    </div>
+                </div>
+            </section><section id="models">
+    <h2>Database Models (Mongoose)</h2>
+    <p>The application uses MongoDB with Mongoose for data modeling. The schema handles users (both customers and
+        providers), service requests, reviews, and configuration.</p>
+
+    <div id="model-user" class="file-card">
+        <div class="file-header">
+            <span class="file-name">server/models/User.js</span>
+            <span class="file-type">Schema</span>
+        </div>
+        <p>Stores both <strong>Customer</strong> and <strong>Provider</strong> profiles. We use a single collection with
+            a `role` discriminator to simplify auth.</p>
+        <pre><code>const UserSchema = new mongoose.Schema({
+    <span class="prop">name</span>: { type: String, required: true },
+    <span class="prop">email</span>: { type: String, required: true, unique: true },
+    <span class="prop">role</span>: { type: String, default: 'user' }, <span class="comment">// 'user', 'provider', 'admin'</span>
+    
+    <span class="comment">// Provider Specific</span>
+    <span class="prop">shopName</span>: { type: String },
+    <span class="prop">providerCategory</span>: [{ type: String, enum: ['Mechanic', 'Fuel Delivery', 'EV Support'] }],
+    <span class="prop">location</span>: { 
+        type: { type: String, default: 'Point' }, 
+        coordinates: [Number] <span class="comment">// [Lng, Lat] - Shop Location</span>
+    },
+    <span class="prop">isVerified</span>: { type: Boolean, default: false },
+    <span class="prop">pendingUpdate</span>: { ... } <span class="comment">// Staging area for profile changes requiring admin approval</span>
+});</code></pre>
+    </div>
+
+    <div id="model-request" class="file-card">
+        <div class="file-header">
+            <span class="file-name">server/models/Request.js</span>
+            <span class="file-type">Schema</span>
+        </div>
+        <p>The core business entity. Represents a service job from creation to completion and payment.</p>
+        <pre><code>const RequestSchema = new mongoose.Schema({
+    <span class="prop">customer</span>: { type: ObjectId, ref: 'User' },
+    <span class="prop">provider</span>: { type: ObjectId, ref: 'User' },
+    <span class="prop">status</span>: { type: String, enum: ['Pending', 'Accepted', 'Arrived', 'In Progress', 'Completed', 'Cancelled'] },
+    
+    <span class="prop">pricing</span>: {
+        <span class="prop">baseFee</span>: Number,
+        <span class="prop">distanceFee</span>: Number,
+        <span class="prop">materialCost</span>: Number, <span class="comment">// Added after job completion</span>
+        <span class="prop">totalAmount</span>: Number
+    },
+    
+    <span class="prop">serviceOtp</span>: String, <span class="comment">// 4-digit code for start verification</span>
+    <span class="prop">otpVerified</span>: Boolean,
+    
+    <span class="prop">bill</span>: [{ name: String, cost: Number }], <span class="comment">// Itemized bill</span>
+    <span class="prop">paymentStatus</span>: { type: String, enum: ['pending', 'success', 'failed'] }
+});</code></pre>
+    </div>
+
+    <div id="model-servicedata" class="file-card">
+        <div class="file-header">
+            <span class="file-name">server/models/ServiceRate.js</span>
+            <span class="file-type">Schema</span>
+        </div>
+        <p>Configurable pricing model. Admins can update base prices and per-km rates for any service without code
+            changes.</p>
+        <div class="function-item">
+            <div class="function-name">Fields</div>
+            <ul>
+                <li><span class="prop">serviceName</span>: Unique ID (e.g., 'Flat Tire', 'Petrol')</li>
+                <li><span class="prop">basePrice</span>: Minimum call-out fee.</li>
+                <li><span class="prop">pricePerKm</span>: Distance multiplier (Roadside Assist).</li>
+                <li><span class="prop">pricePerLitre</span>: Fuel cost (Fuel Delivery only).</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="model-review" class="file-card">
+        <div class="file-header">
+            <span class="file-name">server/models/Review.js</span>
+            <span class="file-type">Schema</span>
+        </div>
+        <p>Bidirectional review system. Users review Providers, and Providers review Users.</p>
+        <pre><code>const ReviewSchema = new mongoose.Schema({
+    <span class="prop">request</span>: { type: ObjectId, ref: 'Request' },
+    <span class="prop">reviewer</span>: { type: ObjectId, ref: 'User' },
+    <span class="prop">reviewee</span>: { type: ObjectId, ref: 'User' },
+    <span class="prop">rating</span>: { type: Number, min: 1, max: 5 },
+    <span class="prop">comment</span>: String
+});
+
+<span class="func">stat.getAverageRating(userId)</span>: Aggregation pipeline to calc avg score.</code></pre>
+    </div>
+</section><section id="server-logic">
+    <h2>Server Logic & Controllers</h2>
+    <p>The core business logic is encapsulated in Controllers, keeping Routes clean. Key workflows include the Request
+        Lifecycle, Payments, and Real-time updates.</p>
+
+    <div id="controller-request" class="file-card">
+        <div class="file-header">
+            <span class="file-name">server/controllers/requestController.js</span>
+            <span class="file-type">Controller</span>
+        </div>
+        <p>Handles the entire lifecycle of a service request.</p>
+
+        <div class="function-item">
+            <div class="function-name">searchProviders(req, res)</div>
+            <p>Complex geospatial query to find eligible providers.</p>
+            <ul>
+                <li><span class="badge badge-post">POST</span> <code>/api/requests/search</code></li>
+                <li><strong>Logic:</strong>
+                    <ol>
+                        <li>Calculates a "Bundle Price" based on selected services from <code>ServiceRate</code>
+                            collection.</li>
+                        <li>Queries `User` collection for providers who are: <code>isOnline: true</code>,
+                            <code>isVerified: true</code>, and within 50km.</li>
+                        <li>Returns list with estimated cost, distance, and provider details.</li>
+                    </ol>
+                </li>
+            </ul>
+        </div>
+
+        <div class="function-item">
+            <div class="function-name">createRequest(req, res)</div>
+            <p>Initializes a new job. Emits <code>new_request</code> socket event to the specific provider.</p>
+        </div>
+
+        <div class="function-item">
+            <div class="function-name">verifyServiceOtp(req, res)</div>
+            <p>Critical security step. Provider must enter the 4-digit OTP generated upon acceptance to start work.</p>
+            <ul>
+                <li><span class="badge badge-post">POST</span> <code>/api/requests/verify-otp</code></li>
+                <li><strong>Validation:</strong> Checks if OTP matches database.</li>
+                <li><strong>Side Effect:</strong> Sets status to 'In Progress', emits <code>otp_verified</code> to User
+                    via Socket.io.</li>
+            </ul>
+        </div>
+
+        <div class="function-item">
+            <div class="function-name">sendBill(req, res)</div>
+            <p>Generates the final bill. Handles dynamic logic for Fuel vs Mechanic.</p>
+            <ul>
+                <li><strong>Fuel:</strong> Calculates cost based on Litres * Rate.</li>
+                <li><strong>Mechanic:</strong> Sums up itemized parts/labor list.</li>
+                <li><strong>Output:</strong> Emits <code>bill_received</code> socket event to User with payment prompt.
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="routes-payment" class="file-card">
+        <div class="file-header">
+            <span class="file-name">server/routes/paymentRoutes.js</span>
+            <span class="file-type">Route</span>
+        </div>
+        <p>Integration with Cashfree Payment Gateway.</p>
+
+        <div class="function-item">
+            <div class="function-name">/create-order</div>
+            <p>Initiates a payment session with Cashfree.</p>
+            <pre><code>const request = {
+    order_amount: orderAmount,
+    order_currency: "INR",
+    customer_details: { ... },
+    order_note: "FuelnFix - Roadside Assistance"
+};
+const response = await cashfree.PGCreateOrder(request);</code></pre>
+        </div>
+
+        <div class="function-item">
+            <div class="function-name">/verify-payment</div>
+            <p>Backend verification of the payment status after frontend success callback.</p>
+        </div>
+    </div>
+
+    <div id="routes-review" class="file-card">
+        <div class="file-header">
+            <span class="file-name">server/routes/reviewRoutes.js</span>
+            <span class="file-type">Route</span>
+        </div>
+        <p>Handles rating submission and average calculation.</p>
+        <ul>
+            <li><strong>Submit:</strong> Updates the specific `Review` document AND recalculates the
+                `User.averageRating` aggregate immediately.</li>
+            <li><strong>Get:</strong> Fetches pagination-supported reviews for a profile.</li>
+        </ul>
+    </div>
+</section><section id="client-components">
+    <h2>Client Components</h2>
+    <p>Reusable UI components that power the frontend experience.</p>
+
+    <div id="comp-wizard" class="file-card">
+        <div class="file-header">
+            <span class="file-name">client/src/components/RequestHelpWizard.jsx</span>
+            <span class="file-type">Component</span>
+        </div>
+        <p>The core booking flow. A complex multi-step modal that guides the user from service selection to provider
+            booking.</p>
+        <div class="function-item">
+            <div class="function-name">Steps</div>
+            <ol>
+                <li><strong>Select Services:</strong> Multiselect grid.</li>
+                <li><strong>Select Vehicle:</strong> Choose from user's registered vehicles.</li>
+                <li><strong>Add Photo:</strong> Upload problem image to Firebase Storage.</li>
+                <li><strong>Confirm Location:</strong> Fullscreen map to pin exact GPS coords.</li>
+                <li><strong>Select Provider:</strong> Map view of nearby providers. Clicking a marker opens the "Best
+                    Offer" bottom sheet.</li>
+            </ol>
+        </div>
+        <div class="function-item">
+            <div class="function-name">handleBookProvider()</div>
+            <p>Compiles all wizard state (Vehicle, Photo URL, Location, Selected Provider) and calls
+                <code>/api/request/create</code>.</p>
+        </div>
+    </div>
+
+    <div id="comp-chat" class="file-card">
+        <div class="file-header">
+            <span class="file-name">client/src/components/LiveChat.jsx</span>
+            <span class="file-type">Component</span>
+        </div>
+        <p>Real-time floating chat widget using Socket.io.</p>
+        <ul>
+            <li><strong>Props:</strong> <code>socket</code>, <code>roomId</code> (Request ID).</li>
+            <li><strong>Features:</strong>
+                <ul>
+                    <li>Minimizable floating bubble.</li>
+                    <li>Unread message badge with bounce animation.</li>
+                    <li>Auto-scroll to bottom on new message.</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+    <div id="comp-map" class="file-card">
+        <div class="file-header">
+            <span class="file-name">client/src/components/GoogleMaps/MapComponent.jsx</span>
+            <span class="file-type">Wrapper</span>
+        </div>
+        <p>Encapsulates Google Maps configuration.</p>
+        <ul>
+            <li>Supports <strong>Dark Mode</strong> (Uber-style custom JSON theme).</li>
+            <li>Handles Geolocation (Blue Dot).</li>
+            <li>Accepts <code>children</code> for rendering markers (Provider icons).</li>
+        </ul>
+    </div>
+</section><section id="deployment">
+    <h2>Deployment & Configuration</h2>
+    <div class="file-card">
+        <h3>Environment Variables (Server)</h3>
+        <ul>
+            <li><code>MONGO_URI</code>: MongoDB connection string.</li>
+            <li><code>CASHFREE_APP_ID</code>: Payment Gateway ID.</li>
+            <li><code>CASHFREE_SECRET_KEY</code>: Payment Gateway Secret.</li>
+            <li><code>FIREBASE_SERVICE_ACCOUNT</code>: JSON string for Firebase Admin SDK.</li>
+        </ul>
+    </div>
+</section>
+
+</div>
+</main>
+
+<script>
+    // Simple script to highlight active nav link on scroll
+    const sections = document.querySelectorAll('section');
+    const navLinks = document.querySelectorAll('nav a');
+
+    window.addEventListener('scroll', () => {
+        let current = '';
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            if (scrollY >= sectionTop - 100) {
+                current = section.getAttribute('id');
+            }
+        });
+
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href').includes(current)) {
+                link.classList.add('active');
+            }
+        });
+    });
+</script>
+</body>
+
+</html>

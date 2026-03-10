@@ -4,9 +4,8 @@ import api from '../lib/api';
 import { useToast } from '../components/Toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Car, Wrench, Loader2, MapPin, CheckCircle, Mail, ArrowRight, Camera, Upload, Search, Fuel, BatteryCharging } from 'lucide-react';
-import { auth, googleProvider, storage } from '../firebaseConfig';
+import { auth, googleProvider } from '../firebaseConfig';
 import { signInWithPopup } from 'firebase/auth';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Autocomplete, Marker, useJsApiLoader } from '@react-google-maps/api';
 import MapComponent from '../components/GoogleMaps/MapComponent';
 
@@ -28,6 +27,7 @@ const Register = () => {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
+        password: '',
         role: 'user',
         vehicleModel: '',
         vehicleFuel: 'Petrol',
@@ -122,14 +122,22 @@ const Register = () => {
 
         setUploading(true);
         try {
-            const storageRef = ref(storage, `shop-photos/${Date.now()}_${file.name}`);
-            const snapshot = await uploadBytes(storageRef, file);
-            const downloadURL = await getDownloadURL(snapshot.ref);
+            const firebaseUser = auth.currentUser;
+            const ownerUid = firebaseUser?.uid || 'unknown';
 
-            setFormData(prev => ({ ...prev, shopPhotoUrl: downloadURL }));
+            const formDataUpload = new FormData();
+            formDataUpload.append('photo', file);
+            formDataUpload.append('ownerUid', ownerUid);
+
+            const uploadRes = await api.post('/api/upload/shop-photo', formDataUpload, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            setFormData(prev => ({ ...prev, shopPhotoUrl: uploadRes.data.url }));
+            console.info('Shop photo uploaded via Cloudinary:', uploadRes.data.url);
         } catch (err) {
-            console.error("Upload Error:", err);
-            alert("Failed to upload image.");
+            console.error('Upload Error:', err);
+            alert(`Failed to upload image: ${err?.response?.data?.details || err.message}`);
         } finally {
             setUploading(false);
         }
@@ -186,23 +194,26 @@ const Register = () => {
         e.preventDefault();
         setLoading(true);
         try {
+            let idToken = null;
             const user = auth.currentUser;
-            if (!user) {
-                alert("No authenticated user found. Please sign in with Google first.");
-                await handleGoogleSignup();
+
+            if (hasAuthenticated && user) {
+                idToken = await user.getIdToken();
+            } else if (!formData.password) {
+                alert("Please enter a password or sign up with Google");
+                setLoading(false);
                 return;
             }
-
-            const idToken = await user.getIdToken();
 
             // Build Payload
             let payload = {
                 name: formData.name,
                 email: formData.email,
+                password: formData.password,
                 role: formData.role,
-                photoUrl: googleUser?.photoUrl || '',
-                idToken
+                photoUrl: googleUser?.photoUrl || ''
             };
+            if (idToken) payload.idToken = idToken;
 
             if (formData.role === 'user') {
                 payload.vehicleDetails = {
@@ -261,6 +272,12 @@ const Register = () => {
             const response = await api.post('/api/auth/register', payload);
             console.log("Registration successful:", response.data);
 
+            // If manual registration returning a token, auto-login
+            if (response.data.token && response.data.user) {
+                localStorage.setItem('user', JSON.stringify(response.data.user));
+                localStorage.setItem('token', response.data.token);
+            }
+
             toast.success("Account created successfully!");
 
             // Add a small delay regarding navigation to ensure toast is seen and state is settled
@@ -300,11 +317,8 @@ const Register = () => {
                 className="max-w-4xl w-full bg-card/50 backdrop-blur-2xl border border-blue-500/10 rounded-[2.5rem] p-8 md:p-12 relative z-10 shadow-2xl shadow-blue-500/5"
             >
                 <div className="text-center mb-10">
-                    <Link to="/" className="inline-flex items-center gap-3 text-3xl font-black tracking-tighter justify-center mb-2">
-                        <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
-                            <MapPin className="w-6 h-6 fill-current" />
-                        </div>
-                        <span>Fuel<span className="text-blue-500">N</span>Fix</span>
+                    <Link to="/" className="inline-flex items-center justify-center mb-2">
+                        <img src="/logo1.png" alt="FuelNFix Logo" className="h-16 md:h-20 w-auto" />
                     </Link>
                     <h2 className="text-2xl font-bold">Complete your Profile</h2>
                 </div>
@@ -353,10 +367,11 @@ const Register = () => {
                             <input
                                 name="name"
                                 type="text"
-                                readOnly={!!formData.name}
-                                className="block w-full px-4 h-14 rounded-2xl border border-border bg-background/50 text-foreground shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                readOnly={hasAuthenticated}
+                                className={`block w-full px-4 h-14 rounded-2xl border border-border bg-background/50 text-foreground shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all ${hasAuthenticated ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 value={formData.name}
                                 onChange={handleChange}
+                                required
                             />
                         </div>
                         <div className="space-y-2">
@@ -364,12 +379,27 @@ const Register = () => {
                             <input
                                 name="email"
                                 type="email"
-                                readOnly={!!formData.email}
-                                className="block w-full px-4 h-14 rounded-2xl border border-border bg-background/50 text-foreground shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                readOnly={hasAuthenticated}
+                                className={`block w-full px-4 h-14 rounded-2xl border border-border bg-background/50 text-foreground shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all ${hasAuthenticated ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 value={formData.email}
                                 onChange={handleChange}
+                                required
                             />
                         </div>
+                        {!hasAuthenticated && (
+                            <div className="space-y-2 sm:col-span-2">
+                                <label className="text-sm font-bold ml-1 text-foreground/80">Password</label>
+                                <input
+                                    name="password"
+                                    type="password"
+                                    className="block w-full px-4 h-14 rounded-2xl border border-border bg-background/50 text-foreground shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    required={!hasAuthenticated}
+                                    placeholder="Create a secure password"
+                                />
+                            </div>
+                        )}
                     </div>
 
                     {/* Role Selection */}
@@ -381,7 +411,7 @@ const Register = () => {
                                 className={`flex-1 max-w-[200px] h-28 p-4 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 ${formData.role === 'user' ? 'bg-blue-500 text-white border-blue-500 shadow-xl shadow-blue-500/20 scale-105' : 'bg-background/50 border-border hover:border-blue-500/30 text-muted-foreground hover:bg-background/80'}`}
                             >
                                 <Car className="w-8 h-8" />
-                                <span className="font-bold">Motorist</span>
+                                <span className="font-bold">User</span>
                             </button>
                             <button
                                 type="button"

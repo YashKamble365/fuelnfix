@@ -4,8 +4,6 @@ const authController = require('../controllers/authController');
 
 router.post('/register', authController.register);
 router.post('/login', authController.login);
-router.get('/demo-login/:email', authController.demoLogin); // Demo provider login
-// router.post('/verify-otp', authController.verifyOTP);
 router.put('/profile', authController.updateProfile);
 router.get('/profile/:userId', authController.getUserProfile);
 router.post('/vehicles', authController.addVehicle);

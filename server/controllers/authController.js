@@ -1,31 +1,47 @@
 const User = require('../models/User');
 const admin = require('../config/firebaseAdmin');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 exports.register = async (req, res) => {
     try {
-        const { name, role, vehicleDetails, idToken, shopName, providerCategory, services, address, location, photoUrl } = req.body;
+        const { name, email, password, role, vehicleDetails, idToken, shopName, providerCategory, services, address, location, photoUrl } = req.body;
 
-        if (!idToken) {
-            return res.status(400).json({ message: 'Firebase ID token is required' });
-        }
+        let userEmail = email;
+        let userName = name;
+        let userPhotoUrl = photoUrl;
 
-        // Verify Firebase Token
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        const { email, picture, uid } = decodedToken;
+        // Verify Firebase Token if Google Registration
+        if (idToken) {
+            const decodedToken = await admin.auth().verifyIdToken(idToken);
+            userEmail = decodedToken.email;
+            userName = name || decodedToken.name;
+            userPhotoUrl = photoUrl || decodedToken.picture;
 
-        if (!email) {
-            return res.status(400).json({ message: 'Email not found in token' });
+            if (!userEmail) {
+                return res.status(400).json({ message: 'Email not found in token' });
+            }
+        } else if (!userEmail || !password) {
+            return res.status(400).json({ message: 'Email and password are required' });
         }
 
         // Check if user already exists
-        let user = await User.findOne({ email });
+        let user = await User.findOne({ email: userEmail });
         if (user) return res.status(400).json({ message: 'User already exists' });
+
+        // Hash password if standard registration
+        let hashedPassword = undefined; // Undefined so Mongoose doesn't set an empty string if Google Auth
+        if (password && !idToken) {
+            const salt = await bcrypt.genSalt(10);
+            hashedPassword = await bcrypt.hash(password, salt);
+        }
 
         // Create new user
         user = new User({
-            name: name || decodedToken.name, // Use name from form or Google
-            email,
-            photoUrl: photoUrl || picture,
+            name: userName, // Use name from form or Google
+            email: userEmail,
+            photoUrl: userPhotoUrl,
+            password: hashedPassword,
             role,
             // If vehicle details are provided during registration, add to array
             vehicles: vehicleDetails ? [vehicleDetails] : [],
@@ -44,7 +60,15 @@ exports.register = async (req, res) => {
         });
 
         await user.save();
-        res.status(201).json({ message: 'User registered successfully', userId: user._id, user });
+
+        // Return JWT for standard registration to auto-login, or just standard success message
+        let token = null;
+        if (!idToken) {
+            const payload = { user: { id: user.id, role: user.role } };
+            token = jwt.sign(payload, process.env.JWT_SECRET || 'fuelnfix_fallback_secret', { expiresIn: '7d' });
+        }
+
+        res.status(201).json({ message: 'User registered successfully', userId: user._id, user, token });
     } catch (err) {
         console.error('Registration Error:', err);
         res.status(500).json({ message: err.message || 'Registration failed' });
@@ -53,48 +77,66 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
     try {
-        const { idToken } = req.body;
+        const { email, password, idToken } = req.body;
 
-        if (!idToken) {
-            return res.status(400).json({ message: 'Firebase ID token is required' });
+        let user;
+        let token = null;
+
+        if (idToken) {
+            // Google Login
+            const decodedToken = await admin.auth().verifyIdToken(idToken);
+            user = await User.findOne({ email: decodedToken.email });
+
+            if (!user) {
+                return res.status(404).json({
+                    message: 'User not found. Please register first.',
+                    googleData: {
+                        email: decodedToken.email,
+                        name: decodedToken.name,
+                        photoUrl: decodedToken.picture
+                    }
+                });
+            }
+
+            // Force update profile picture and name from Google if changed or missing
+            let updated = false;
+            if (decodedToken.picture && user.photoUrl !== decodedToken.picture) {
+                user.photoUrl = decodedToken.picture;
+                updated = true;
+            }
+            if (decodedToken.name && !user.name) {
+                user.name = decodedToken.name;
+                updated = true;
+            }
+            if (updated) await user.save();
+
+        } else if (email && password) {
+            // Standard Email/Password Login
+            user = await User.findOne({ email });
+            if (!user) {
+                return res.status(404).json({ message: 'Invalid credentials' });
+            }
+
+            if (!user.password) {
+                return res.status(400).json({ message: 'Account registered via Google. Please login with Google.' });
+            }
+
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
+                return res.status(400).json({ message: 'Invalid credentials' });
+            }
+
+            // Generate standard JWT fallback
+            const payload = { user: { id: user.id, role: user.role } };
+            token = jwt.sign(payload, process.env.JWT_SECRET || 'fuelnfix_fallback_secret', { expiresIn: '7d' });
+        } else {
+            return res.status(400).json({ message: 'Invalid login request format' });
         }
 
-        // Verify Firebase Token
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        const { email, name, picture } = decodedToken;
-
-        // Find user by email
-        const user = await User.findOne({ email });
-
-        // If user not found, return 404 with Google details to pre-fill registration
-        if (!user) {
-            return res.status(404).json({
-                message: 'User not found. Please register first.',
-                googleData: {
-                    email,
-                    name,
-                    photoUrl: picture
-                }
-            });
-        }
-
-        // Force update profile picture and name from Google if changed or missing
-        let updated = false;
-        if (picture && user.photoUrl !== picture) {
-            user.photoUrl = picture;
-            updated = true;
-        }
-        if (name && !user.name) {
-            user.name = name;
-            updated = true;
-        }
-
-        if (updated) await user.save();
-
-        res.json({ message: 'Login successful', user });
+        res.json({ message: 'Login successful', user, token });
     } catch (err) {
         console.error('Login Error:', err);
-        res.status(401).json({ message: 'Invalid or expired token' });
+        res.status(401).json({ message: 'Invalid credentials or expired token' });
     }
 };
 
@@ -469,23 +511,4 @@ exports.getUserProfile = async (req, res) => {
     }
 };
 
-// Demo Login - For testing purposes only
-exports.demoLogin = async (req, res) => {
-    try {
-        const { email } = req.params;
 
-        // Only allow demo accounts
-        if (!email.endsWith('@fuelnfix.com')) {
-            return res.status(403).json({ message: 'Only demo accounts allowed' });
-        }
-
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ message: 'Demo provider not found' });
-        }
-
-        res.json({ user });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};

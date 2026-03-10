@@ -1,0 +1,40 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwnerOrProfileMatch(folder) {
+      return request.auth != null && (
+        request.auth.uid == folder ||
+        request.auth.token.name == folder ||
+        request.auth.token.email == folder
+      );
+    }
+
+    // Support both new (UID) and legacy (display name) upload paths:
+    // problem_photos/{folder}/{...}
+    match /problem_photos/{folder}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isOwnerOrProfileMatch(folder);
+    }
+
+    // Current upload location
+    match /shop-photos/{uid}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Legacy compatibility with old client path format: shop-photos/{timestamp_filename}
+    match /shop-photos/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

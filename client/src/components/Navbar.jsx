@@ -48,10 +48,7 @@ const Navbar = () => {
                     {/* Logo */}
                     <div className="flex-shrink-0 flex items-center">
                         <Link to="/" className="text-2xl font-bold tracking-tighter flex items-center gap-2 group">
-                            <div className={`w-10 h-10 rounded-xl ${isLandingPage ? 'bg-blue-500 shadow-blue-500/25' : 'bg-primary shadow-primary/25'} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform`}>
-                                <MapPin className="w-6 h-6 fill-current" />
-                            </div>
-                            <span className="text-foreground">Fuel<span className={isLandingPage ? 'text-blue-500' : 'text-primary'}>N</span>Fix</span>
+                            <img src="/logo1.png" alt="FuelNFix" className="h-14 md:h-16 w-auto group-hover:scale-105 transition-transform" />
                         </Link>
                     </div>
 
