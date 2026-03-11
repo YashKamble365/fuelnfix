@@ -14,7 +14,7 @@ const defaultCenter = {
     lng: 72.8777
 };
 
-const libraries = ['places', 'geometry'];
+const libraries = ['geometry'];
 
 const darkMapStyle = [
     { elementType: "geometry", stylers: [{ color: "#242f3e" }] },

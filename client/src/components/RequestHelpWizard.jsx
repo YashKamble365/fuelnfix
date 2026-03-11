@@ -37,7 +37,7 @@ const RequestHelpWizard = ({ category, services, availableServices, userLocation
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
         googleMapsApiKey: "AIzaSyDta1Z02aqGopcvuZTLPH1-AJRehMRDTAM",
-        libraries: ['places', 'geometry']
+        libraries: ['geometry']
     });
 
     const [step, setStep] = useState(services?.length > 0 ? 2 : 1);

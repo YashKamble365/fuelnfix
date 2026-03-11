@@ -14,7 +14,7 @@ const indiaCenter = {
     lng: 78.5
 };
 
-const libraries = ['places', 'geometry'];
+const libraries = ['geometry'];
 
 // Clean light map style
 const lightMapStyle = [

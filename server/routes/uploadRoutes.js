@@ -51,13 +51,13 @@ router.post('/problem-photo', upload.single('photo'), async (req, res) => {
         }
 
         const ownerNameRaw = req.body.ownerName || 'unknown';
-        // Sanitize: Trim, remove weird characters, and collapse spaces/dashes/underscores into a single underscore
-        const ownerName = ownerNameRaw.trim().replace(/[^a-zA-Z0-9\s-_]/g, '').replace(/[\s-_]+/g, '_');
+        // Sanitize: Trim, keep only alphanumerics, replace the rest with underscores
+        const ownerName = ownerNameRaw.trim().replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
 
         const safeOriginalName = (req.file.originalname || 'photo')
             .replace(/\.[^/.]+$/, '') // Remove extension first
-            .replace(/[^a-zA-Z0-9\s-_]/g, '')
-            .replace(/[\s-_]+/g, '_');
+            .replace(/[^a-zA-Z0-9]/g, '_')
+            .replace(/_+/g, '_');
 
         const publicId = `${Date.now()}_${safeOriginalName}`;
         const folder = `fuelnfix/problem_photos/${ownerName}`;
@@ -87,13 +87,13 @@ router.post('/shop-photo', upload.single('photo'), async (req, res) => {
         }
 
         const ownerUidRaw = req.body.ownerUid || 'unknown';
-        // Sanitize ownerUid: Trim and remove any suspicious characters (though UIDs should be safe)
-        const ownerUid = ownerUidRaw.trim().replace(/[^a-zA-Z0-9\s-_]/g, '').replace(/[\s-]+/g, '_');
+        // Sanitize ownerUid: Trim and remove any suspicious characters
+        const ownerUid = ownerUidRaw.trim().replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
 
         const safeOriginalName = (req.file.originalname || 'photo')
             .replace(/\.[^/.]+$/, '') // Remove extension first
-            .replace(/[^a-zA-Z0-9\s-_]/g, '') // Remove non-alphanumeric except spaces/dash/underscore
-            .replace(/[\s-]+/g, '_'); // Replace spaces/dashes with underscores
+            .replace(/[^a-zA-Z0-9]/g, '_') // Remove non-alphanumeric except spaces/dash/underscore
+            .replace(/_+/g, '_'); // Replace spaces/dashes with underscores
 
         const publicId = `${Date.now()}_${safeOriginalName}`;
         const folder = `fuelnfix/shop_photos/${ownerUid}`;

@@ -6,10 +6,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, Car, Wrench, Loader2, MapPin, CheckCircle, Mail, ArrowRight, Camera, Upload, Search, Fuel, BatteryCharging } from 'lucide-react';
 import { auth, googleProvider } from '../firebaseConfig';
 import { signInWithPopup } from 'firebase/auth';
-import { Autocomplete, Marker, useJsApiLoader } from '@react-google-maps/api';
+import { Marker, useJsApiLoader } from '@react-google-maps/api';
 import MapComponent from '../components/GoogleMaps/MapComponent';
 
-const libraries = ['places', 'geometry'];
+const libraries = ['geometry'];
 
 const Register = () => {
     const navigate = useNavigate();
@@ -42,10 +42,11 @@ const Register = () => {
     });
 
     const fileInputRef = useRef(null);
-    const autocompleteRef = useRef(null);
     const [mapCenter, setMapCenter] = useState(null);
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [searchInput, setSearchInput] = useState('');
+    const [searchLoading, setSearchLoading] = useState(false);
     const [googleUser, setGoogleUser] = useState(null);
     const [hasAuthenticated, setHasAuthenticated] = useState(false); // Track if user authenticated in this session
 
@@ -89,24 +90,36 @@ const Register = () => {
         }
     };
 
-    const onLoadAutocomplete = (autocomplete) => {
-        autocompleteRef.current = autocomplete;
-    };
-
-    const onPlaceChanged = () => {
-        if (autocompleteRef.current !== null) {
-            const place = autocompleteRef.current.getPlace();
-            if (place.geometry && place.geometry.location) {
-                const lat = place.geometry.location.lat();
-                const lng = place.geometry.location.lng();
-
+    const handleManualSearch = async () => {
+        if (!searchInput.trim()) return;
+        setSearchLoading(true);
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchInput)}`);
+            const data = await res.json();
+            if (data && data.length > 0) {
+                const lat = parseFloat(data[0].lat);
+                const lng = parseFloat(data[0].lon);
+                setMapCenter({ lat, lng });
                 setFormData(prev => ({
                     ...prev,
-                    address: place.formatted_address,
+                    address: data[0].display_name,
                     location: { lat, lng }
                 }));
-                setMapCenter({ lat, lng });
+            } else {
+                alert("Location not found. Please try to be more specific or drag the marker on the map.");
             }
+        } catch (err) {
+            console.error("Geocoding Error:", err);
+            alert("Failed to search location. Please drag the pin on the map instead.");
+        } finally {
+            setSearchLoading(false);
+        }
+    };
+
+    const handleSearchKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleManualSearch();
         }
     };
 
@@ -569,20 +582,29 @@ const Register = () => {
                                                 <MapPin className="w-4 h-4" /> Location Verification
                                             </h3>
 
-                                            {/* Autocomplete Search */}
-                                            <div className="relative">
-                                                <Autocomplete onLoad={onLoadAutocomplete} onPlaceChanged={onPlaceChanged}>
-                                                    <div className="relative">
-                                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                                            <Search className="h-5 w-5 text-muted-foreground" />
-                                                        </div>
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Search your shop (e.g. Starbucks Mumbai)"
-                                                            className="block w-full pl-12 pr-4 h-14 rounded-2xl border border-border bg-background focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                                                        />
+                                            {/* Manual Location Search */}
+                                            <div className="relative flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                        <Search className="h-5 w-5 text-muted-foreground" />
                                                     </div>
-                                                </Autocomplete>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Search shop location (e.g. Pune Station)"
+                                                        value={searchInput}
+                                                        onChange={(e) => setSearchInput(e.target.value)}
+                                                        onKeyDown={handleSearchKeyDown}
+                                                        className="block w-full pl-12 pr-4 h-14 rounded-2xl border border-border bg-background focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleManualSearch}
+                                                    disabled={searchLoading}
+                                                    className="px-6 h-14 bg-blue-500 text-white font-bold rounded-2xl hover:bg-blue-600 active:scale-95 transition-all flex items-center justify-center min-w-[100px]"
+                                                >
+                                                    {searchLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Search'}
+                                                </button>
                                             </div>
 
                                             <div className="h-[300px] w-full rounded-2xl overflow-hidden border border-border/50 relative">
