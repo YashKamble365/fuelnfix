@@ -121,7 +121,7 @@ const Login = () => {
                     <Link to="/" className="inline-flex items-center justify-center mb-4 hover:scale-105 transition-transform">
                         <img src="/logo1.png" alt="FuelNFix" className="h-16 md:h-20 w-auto" />
                     </Link>
-                    <p className="text-muted-foreground font-medium">Welcome back, commander.</p>
+                    <p className="text-muted-foreground font-medium">Welcome back.</p>
                 </div>
 
                 <div className="space-y-6">

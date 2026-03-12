@@ -377,7 +377,7 @@ const Settings = () => {
                                                 <div>
                                                     <label className="text-sm font-bold ml-1">Fuel Type</label>
                                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
-                                                        {['Petrol', 'Diesel', 'CNG', 'Electric'].map(type => (
+                                                        {['Petrol', 'Diesel', 'Electric'].map(type => (
                                                             <button
                                                                 type="button"
                                                                 key={type}

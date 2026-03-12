@@ -10,7 +10,7 @@ const ReviewSchema = new mongoose.Schema({
     // Who is giving the review
     reviewer: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User', // Always valid since User collection holds both roles
+        ref: 'User',
         required: true
     },
     reviewerType: {
@@ -21,7 +21,7 @@ const ReviewSchema = new mongoose.Schema({
     // Who is being reviewed
     reviewee: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User', // Always valid since User collection holds both roles
+        ref: 'User',
         required: true
     },
     revieweeType: {

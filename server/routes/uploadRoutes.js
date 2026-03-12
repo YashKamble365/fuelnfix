@@ -50,6 +50,14 @@ router.post('/problem-photo', upload.single('photo'), async (req, res) => {
             return res.status(400).json({ error: 'No file provided' });
         }
 
+        // Debug: log Cloudinary config status
+        const cfgStatus = {
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING',
+            api_key: process.env.CLOUDINARY_API_KEY ? `SET (ends ...${process.env.CLOUDINARY_API_KEY.slice(-4)})` : 'MISSING',
+            api_secret: process.env.CLOUDINARY_API_SECRET ? `SET (ends ...${process.env.CLOUDINARY_API_SECRET.slice(-4)})` : 'MISSING',
+        };
+        console.log('[Upload Debug] Cloudinary config status:', JSON.stringify(cfgStatus));
+
         const ownerNameRaw = req.body.ownerName || 'unknown';
         // Sanitize: Trim, keep only alphanumerics, replace the rest with underscores
         const ownerName = ownerNameRaw.trim().replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
@@ -61,6 +69,9 @@ router.post('/problem-photo', upload.single('photo'), async (req, res) => {
 
         const publicId = `${Date.now()}_${safeOriginalName}`;
         const folder = `fuelnfix/problem_photos/${ownerName}`;
+
+        console.log(`[Upload Debug] ownerNameRaw="${ownerNameRaw}" -> ownerName="${ownerName}"`);
+        console.log(`[Upload Debug] folder="${folder}" publicId="${publicId}"`);
 
         const result = await uploadToCloudinary(req.file.buffer, folder, publicId);
 

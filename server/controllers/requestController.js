@@ -25,11 +25,16 @@ exports.getProviderStats = async (req, res) => {
         // 1. Get Completed Requests Stats (Earnings & Job Count)
         const completedRequests = await Request.find({
             provider: providerId,
-            status: 'Completed'
+            status: { $in: ['Completed', 'Paid', 'Rated'] }
         });
 
         const jobsCompleted = completedRequests.length;
-        const totalEarnings = completedRequests.reduce((sum, r) => sum + (r.pricing?.totalAmount || 0), 0);
+        // Accurate net earnings aggregation with smart fallback for old jobs
+        const totalEarnings = completedRequests.reduce((sum, r) => {
+            const net = r.pricing?.providerEarnings;
+            if (net !== undefined && net !== null && net !== 0) return sum + net;
+            return sum + (r.pricing?.totalAmount || 0) * 0.95; // 5% cut was standard before
+        }, 0);
 
         // Calculate Today's Earnings
         const startOfToday = new Date();
@@ -37,7 +42,11 @@ exports.getProviderStats = async (req, res) => {
 
         const todayEarnings = completedRequests
             .filter(r => new Date(r.timestamps?.completedAt || r.updatedAt) >= startOfToday)
-            .reduce((sum, r) => sum + (r.pricing?.totalAmount || 0), 0);
+            .reduce((sum, r) => {
+                const net = r.pricing?.providerEarnings;
+                if (net !== undefined && net !== null && net !== 0) return sum + net;
+                return sum + (r.pricing?.totalAmount || 0) * 0.95;
+            }, 0);
 
         console.log(`[getProviderStats] Total: ${totalEarnings}, Today: ${todayEarnings}, Jobs: ${jobsCompleted}`);
 
@@ -140,16 +149,13 @@ exports.searchProviders = async (req, res) => {
             }
         };
 
-        // Filter providers who have ALL requested services active (Only for Mechanic)
-        if (category !== 'Fuel Delivery') {
-            query['services.active'] = true;
-            if (servicesToFind.length > 0) {
-                query.services = {
-                    $all: servicesToFind.map(name => ({
-                        $elemMatch: { name: { $regex: new RegExp(`^${name}$`, 'i') }, active: true }
-                    }))
-                };
-            }
+        // Filter providers who have ALL requested services active
+        if (servicesToFind.length > 0) {
+            query.services = {
+                $all: servicesToFind.map(name => ({
+                    $elemMatch: { name: { $regex: new RegExp(`^${name}$`, 'i') }, active: true }
+                }))
+            };
         }
 
         // 2. Find ALL Nearby Active Providers
@@ -159,10 +165,10 @@ exports.searchProviders = async (req, res) => {
             return res.status(200).json([]);
         }
 
-        // 3. Calculate Estimate for EACH valid provider
-        const results = providers
+        // 3. Calculate Estimate for EACH valid provider and check Busy Status
+        const results = await Promise.all(providers
             .filter(p => p.location && p.location.coordinates && p.location.coordinates.length === 2)
-            .map(provider => {
+            .map(async (provider) => {
                 // PER USER REQUEST: Always use Static Shop Location for booking/pricing.
                 // Do NOT use liveLocation here.
                 const loc = provider.location;
@@ -174,6 +180,12 @@ exports.searchProviders = async (req, res) => {
                 // Formula: Base + (Dist * Rate)
                 const distanceFee = dist * bundlePricePerKm;
                 const totalEstimate = bundleBasePrice + distanceFee;
+
+                // Check if provider is busy (has active jobs)
+                const activeJob = await Request.findOne({
+                    provider: provider._id,
+                    status: { $in: ['Accepted', 'Arrived', 'In Progress'] }
+                });
 
                 return {
                     baseFee: bundleBasePrice,
@@ -189,10 +201,11 @@ exports.searchProviders = async (req, res) => {
                         rating: provider.averageRating || 0,
                         totalReviews: provider.totalReviews || 0,
                         photoUrl: provider.photoUrl,
-                        location: loc // Send the actual used location to frontend
+                        location: loc, // Send the actual used location to frontend
+                        isBusy: !!activeJob // true if busy
                     }
                 };
-            });
+            }));
 
         res.json(results);
 
@@ -255,6 +268,31 @@ exports.createRequest = async (req, res) => {
         // Real-time Notification
         const io = req.app.get('socketio');
         io.to(providerId).emit('new_request', savedRequest);
+
+        // Auto-Cancellation Timer (60 seconds)
+        setTimeout(async () => {
+            try {
+                const requestToCheck = await Request.findById(savedRequest._id);
+                if (requestToCheck && requestToCheck.status === 'Pending') {
+                    requestToCheck.status = 'Expired';
+                    await requestToCheck.save();
+
+                    // Notify both customer and provider
+                    io.to(providerId).emit('request_cancelled', {
+                        requestId: savedRequest._id,
+                        reason: 'Request expired: Provider did not accept within 1 minute.'
+                    });
+                    io.to(savedRequest.customer._id.toString()).emit('request_cancelled', {
+                        requestId: savedRequest._id,
+                        reason: 'Request expired: Provider did not accept within 1 minute.'
+                    });
+
+                    console.log(`[Auto-Cancel] Request ${savedRequest._id} auto-cancelled after 1 minute.`);
+                }
+            } catch (error) {
+                console.error(`[Auto-Cancel Error] Request ${savedRequest._id}:`, error);
+            }
+        }, 60000);
 
         res.status(201).json(savedRequest);
     } catch (err) {
@@ -321,6 +359,15 @@ exports.cancelRequest = async (req, res) => {
 
         if (!request) return res.status(404).json({ message: 'Request not found' });
 
+        const { cancelledBy } = req.body;
+
+        // Restriction: User cannot cancel if status is NOT Pending
+        if (cancelledBy === 'user' && request.status !== 'Pending') {
+            return res.status(403).json({ 
+                message: 'Cannot cancel request once it has been accepted by the provider. Please contact the provider or support.' 
+            });
+        }
+
         if (!['Pending', 'Accepted', 'Arrived'].includes(request.status)) {
             return res.status(400).json({ message: 'Can only cancel active jobs' });
         }
@@ -328,13 +375,19 @@ exports.cancelRequest = async (req, res) => {
         request.status = 'Cancelled';
         request.timestamps.completedAt = new Date(); // Using completedAt to mark end time
 
-        // Notify customer
+        // Notify both customer and provider
         const io = req.app.get('socketio');
-        // Assuming customer field is populated or is a valid ObjectId
-        io.to(request.customer.toString()).emit('request_cancelled', {
+        const notificationData = {
             requestId: request._id,
-            reason: reason || 'Provider cancelled the job'
-        });
+            reason: reason || 'Job cancelled'
+        };
+
+        if (request.customer) {
+            io.to(request.customer.toString()).emit('request_cancelled', notificationData);
+        }
+        if (request.provider) {
+            io.to(request.provider.toString()).emit('request_cancelled', notificationData);
+        }
 
         await request.save();
         res.json({ message: 'Job cancelled successfully', request });
@@ -415,18 +468,24 @@ exports.completeRequest = async (req, res) => {
         const request = await Request.findById(requestId);
         if (!request) return res.status(404).json({ message: 'Request not found' });
 
-        const finalTotal = request.pricing.baseFee + request.pricing.distanceFee + Number(materialCost);
+        const currentMaterialCost = materialCost !== undefined ? Number(materialCost) : (request.pricing.materialCost || 0);
+        const finalTotal = request.pricing.baseFee + request.pricing.distanceFee + currentMaterialCost;
 
         const PlatformConfig = require('../models/PlatformConfig');
         let config = await PlatformConfig.findOne({ singletonId: 'global_config' });
         const feePercentage = config && config.platformFeePercentage !== undefined ? config.platformFeePercentage : 5;
+        
+        // Fee Base: only Base+Dist for all categories (Commission should NOT be on material/fuel cost)
+        const feeBase = (request.pricing.baseFee || 0) + (request.pricing.distanceFee || 0);
 
-        const platformFee = Math.ceil(finalTotal) * (feePercentage / 100);
-        const providerEarnings = Math.ceil(finalTotal) - platformFee;
+        const platformFee = feeBase * (feePercentage / 100);
+        const providerEarnings = finalTotal - platformFee;
+
+        console.log(`[Commission Fix] Job Completed. Req: ${requestId}, Category: ${request.category}, Total: ${finalTotal}, FeeBase: ${feeBase}, Percentage: ${feePercentage}%, PlatformFee: ${platformFee}, ProviderEarnings: ${providerEarnings}`);
 
         request.status = 'Completed';
-        request.pricing.materialCost = Number(materialCost);
-        request.pricing.totalAmount = Math.ceil(finalTotal);
+        request.pricing.materialCost = currentMaterialCost;
+        request.pricing.totalAmount = finalTotal;
         request.pricing.platformFee = platformFee;
         request.pricing.providerEarnings = providerEarnings;
         request.timestamps.completedAt = new Date();
@@ -492,8 +551,14 @@ exports.sendBill = async (req, res) => {
         const feePercentage = config && config.platformFeePercentage !== undefined ? config.platformFeePercentage : 5;
 
         const totalAmount = subtotal; // What user pays via Cashfree wrapper
-        const platformFee = totalAmount * (feePercentage / 100);
+        
+        // Fee Base: only Base+Dist for all categories (Commission should NOT be on material/fuel cost)
+        const feeBase = (request.pricing.baseFee || 0) + (request.pricing.distanceFee || 0);
+
+        const platformFee = feeBase * (feePercentage / 100);
         const providerEarnings = totalAmount - platformFee;
+
+        console.log(`[Commission Fix] Bill Sent. Req: ${requestId}, Category: ${request.category}, Total: ${totalAmount}, FeeBase: ${feeBase}, Percentage: ${feePercentage}%, PlatformFee: ${platformFee}, ProviderEarnings: ${providerEarnings}`);
 
         // Update request with bill
         request.billSent = true;
@@ -519,7 +584,7 @@ exports.sendBill = async (req, res) => {
             totalAmount: totalAmount, // Removed Math.ceil
             serviceTypes: request.serviceTypes,
             distance: request.pricing.distanceMetric, // Added distance for receipt
-            providerId: request.provider?._id,
+            providerId: request.provider?._id || request.provider,
             providerName: request.provider?.shopName || request.provider?.name || 'Service Provider'
         });
 
@@ -558,7 +623,7 @@ exports.confirmPayment = async (req, res) => {
             requestId: request._id,
             paymentStatus: status,
             paymentId,
-            customerId: request.customer?._id,
+            customerId: request.customer?._id || request.customer,
             customerName: request.customer?.name || 'Customer',
             serviceTypes: request.serviceTypes // Added for Feedback Modal
         });

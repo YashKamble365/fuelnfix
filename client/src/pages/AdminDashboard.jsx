@@ -6,8 +6,7 @@ import api from '../lib/api';
 import { useToast } from '../components/Toast';
 import { useTheme } from '../components/theme-provider';
 import { ModeToggle } from '../components/mode-toggle';
-import MapComponent from '../components/GoogleMaps/MapComponent';
-import { Marker } from '@react-google-maps/api';
+import LeafletMapComponent from '../components/LeafletMapComponent';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 const ITEMS_PER_PAGE = 6;
@@ -334,13 +333,13 @@ const AdminDashboard = () => {
 
             {/* Sidebar */}
             <aside className={`fixed ${selectedProvider ? 'lg:hidden' : 'lg:static'} inset-y-0 left-0 w-80 !bg-white dark:!bg-card/50 !backdrop-blur-none dark:!backdrop-blur-2xl border-r border-border z-50 transform transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col`}>
-                <div className="p-8 pb-4 bg-white dark:bg-transparent">
+                <div className="p-8 pb-4 bg-white dark:bg-transparent flex-1 overflow-y-auto hide-scrollbar">
                     <div className="flex items-center mb-10">
                         <img src="/logo1.png" alt="FuelNFix Admin" className="h-14 md:h-16 w-auto mr-3" />
                         <span className="text-xs align-top bg-orange-500/10 text-orange-500 px-1.5 py-0.5 rounded font-bold">ADMIN</span>
                     </div>
 
-                    <nav className="space-y-2">
+                    <nav className="space-y-2 pb-6">
                         <button onClick={() => { setActiveTab('overview'); setSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all ${activeTab === 'overview' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'hover:bg-accent/50 text-foreground/80'}`}>
                             <LayoutDashboard className="w-5 h-5 opacity-90" /> Overview
                         </button>
@@ -380,8 +379,7 @@ const AdminDashboard = () => {
                     </nav>
                 </div>
 
-                {/* White spacer to fill the gap */}
-                <div className="flex-1 bg-white dark:bg-transparent"></div>
+                {/* White spacer removed to allow flex-1 scrollable content */}
 
                 <div className="p-6 border-t border-border/50 bg-white dark:bg-background/20">
                     <button
@@ -805,14 +803,14 @@ const AdminDashboard = () => {
                                                 {p.verificationDocs?.shopPhoto || p.shopPhotoUrl ? (
                                                     <img src={p.verificationDocs?.shopPhoto || p.shopPhotoUrl} alt="Shop" className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center font-bold text-lg" style={{ color: '#a1a1aa' }}>{(p.shopName && p.shopName[0]) || '?'}</div>
+                                                    <div className="w-full h-full flex items-center justify-center font-bold text-lg text-zinc-400">{(p.shopName && p.shopName[0]) || '?'}</div>
                                                 )}
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <div className="flex justify-between items-start gap-3">
                                                     <div className="min-w-0">
-                                                        <h3 className="text-base font-bold truncate leading-tight" style={{ color: '#18181b' }}>{p.shopName}</h3>
-                                                        <p className="text-sm truncate mt-0.5" style={{ color: '#71717a' }}>{p.email}</p>
+                                                        <h3 className="text-base font-bold truncate leading-tight text-zinc-900 dark:text-zinc-50">{p.shopName}</h3>
+                                                        <p className="text-sm truncate mt-0.5 text-zinc-500 dark:text-zinc-400">{p.email}</p>
                                                     </div>
                                                     <span
                                                         className="shrink-0 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
@@ -827,8 +825,8 @@ const AdminDashboard = () => {
                                         <div
                                             className="flex items-start gap-2 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700"
                                         >
-                                            <MapPin className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#a1a1aa' }} />
-                                            <p className="text-sm leading-relaxed line-clamp-2" style={{ color: '#52525b' }}>{p.address}</p>
+                                            <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-zinc-400" />
+                                            <p className="text-sm leading-relaxed line-clamp-2 text-zinc-600 dark:text-zinc-300">{p.address}</p>
                                         </div>
 
                                         <div className="flex gap-3 mt-auto">
@@ -869,21 +867,19 @@ const AdminDashboard = () => {
                                 <button
                                     onClick={() => setPendingPage(p => Math.max(1, p - 1))}
                                     disabled={pendingPage === 1}
-                                    className="p-2 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                                    style={{ backgroundColor: '#f4f4f5', border: '1px solid #e4e4e7' }}
+                                    className="p-2 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700"
                                 >
-                                    <ChevronLeft className="w-5 h-5" style={{ color: '#52525b' }} />
+                                    <ChevronLeft className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
                                 </button>
-                                <span className="text-sm font-semibold" style={{ color: '#52525b' }}>
+                                <span className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">
                                     Page {pendingPage} of {Math.ceil(pendingProviders.length / ITEMS_PER_PAGE)}
                                 </span>
                                 <button
                                     onClick={() => setPendingPage(p => Math.min(Math.ceil(pendingProviders.length / ITEMS_PER_PAGE), p + 1))}
                                     disabled={pendingPage >= Math.ceil(pendingProviders.length / ITEMS_PER_PAGE)}
-                                    className="p-2 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                                    style={{ backgroundColor: '#f4f4f5', border: '1px solid #e4e4e7' }}
+                                    className="p-2 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700"
                                 >
-                                    <ChevronRight className="w-5 h-5" style={{ color: '#52525b' }} />
+                                    <ChevronRight className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
                                 </button>
                             </div>
                         )}
@@ -935,7 +931,7 @@ const AdminDashboard = () => {
                                                     {p.verificationDocs?.shopPhoto || p.shopPhotoUrl ? (
                                                         <img src={p.verificationDocs?.shopPhoto || p.shopPhotoUrl} alt={p.shopName || 'Shop'} className="w-full h-full object-cover" />
                                                     ) : (
-                                                        <div className="w-full h-full flex items-center justify-center font-bold text-xl" style={{ color: '#a1a1aa' }}>{(p.shopName && p.shopName[0]) || '?'}</div>
+                                                        <div className="w-full h-full flex items-center justify-center font-bold text-xl text-zinc-400">{(p.shopName && p.shopName[0]) || '?'}</div>
                                                     )}
                                                 </div>
                                                 <div className="overflow-hidden flex-1 relative">
@@ -948,8 +944,8 @@ const AdminDashboard = () => {
                                                         </span>
                                                     </div>
                                                     <div className="pr-24">
-                                                        <h4 className="font-bold text-lg truncate leading-tight" style={{ color: '#18181b' }}>{p.shopName || 'Unknown Shop'}</h4>
-                                                        <p className="text-sm truncate mt-0.5" style={{ color: '#71717a' }}>{p.email || 'No Email'}</p>
+                                                        <h4 className="font-bold text-lg truncate leading-tight text-zinc-900 dark:text-zinc-50">{p.shopName || 'Unknown Shop'}</h4>
+                                                        <p className="text-sm truncate mt-0.5 text-zinc-500 dark:text-zinc-400">{p.email || 'No Email'}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -957,8 +953,8 @@ const AdminDashboard = () => {
                                             <div
                                                 className="flex items-start gap-2 p-3 rounded-xl mb-4 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700"
                                             >
-                                                <MapPin className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#a1a1aa' }} />
-                                                <p className="text-sm leading-relaxed line-clamp-2" style={{ color: '#52525b' }}>{p.address}</p>
+                                                <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-zinc-400" />
+                                                <p className="text-sm leading-relaxed line-clamp-2 text-zinc-600 dark:text-zinc-300">{p.address}</p>
                                             </div>
 
                                             <div className="flex gap-3 mt-auto">
@@ -1000,9 +996,9 @@ const AdminDashboard = () => {
                                         className="p-2 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                                         style={{ backgroundColor: '#f4f4f5', border: '1px solid #e4e4e7' }}
                                     >
-                                        <ChevronLeft className="w-5 h-5" style={{ color: '#52525b' }} />
+                                        <ChevronLeft className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
                                     </button>
-                                    <span className="text-sm font-semibold" style={{ color: '#52525b' }}>
+                                    <span className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">
                                         Page {verifiedPage} of {totalVerifiedPages}
                                     </span>
                                     <button
@@ -1011,7 +1007,7 @@ const AdminDashboard = () => {
                                         className="p-2 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                                         style={{ backgroundColor: '#f4f4f5', border: '1px solid #e4e4e7' }}
                                     >
-                                        <ChevronRight className="w-5 h-5" style={{ color: '#52525b' }} />
+                                        <ChevronRight className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
                                     </button>
                                 </div>
                             )}
@@ -1070,8 +1066,8 @@ const AdminDashboard = () => {
                                                         )}
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <h4 className="font-bold text-lg truncate" style={{ color: '#18181b' }}>{u.name}</h4>
-                                                        <p className="text-xs truncate" style={{ color: '#71717a' }}>{u.email}</p>
+                                                        <h4 className="font-bold text-lg truncate text-zinc-900 dark:text-zinc-50">{u.name}</h4>
+                                                        <p className="text-xs truncate text-zinc-500 dark:text-zinc-400">{u.email}</p>
                                                         <span
                                                             className="inline-block mt-1 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded"
                                                             style={{
@@ -1109,9 +1105,9 @@ const AdminDashboard = () => {
                                         className="p-2 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                                         style={{ backgroundColor: '#f4f4f5', border: '1px solid #e4e4e7' }}
                                     >
-                                        <ChevronLeft className="w-5 h-5" style={{ color: '#52525b' }} />
+                                        <ChevronLeft className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
                                     </button>
-                                    <span className="text-sm font-semibold" style={{ color: '#52525b' }}>
+                                    <span className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">
                                         Page {usersPage} of {totalUsersPages}
                                     </span>
                                     <button
@@ -1120,7 +1116,7 @@ const AdminDashboard = () => {
                                         className="p-2 rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                                         style={{ backgroundColor: '#f4f4f5', border: '1px solid #e4e4e7' }}
                                     >
-                                        <ChevronRight className="w-5 h-5" style={{ color: '#52525b' }} />
+                                        <ChevronRight className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
                                     </button>
                                 </div>
                             )}
@@ -1160,10 +1156,12 @@ const AdminDashboard = () => {
                                             <div className="flex items-start justify-between mb-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500/20 to-yellow-500/5 flex items-center justify-center font-black text-yellow-500 border border-yellow-500/20 text-lg">
-                                                        {review.reviewer?.name?.[0] || review.reviewer?.shopName?.[0] || '?'}
+                                                        {review.reviewer?.name?.[0] || review.reviewer?.shopName?.[0] || (typeof review.reviewer === 'string' ? '?' : '?')}
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-sm">{review.reviewer?.name || review.reviewer?.shopName || 'Unknown'}</p>
+                                                        <p className="font-bold text-sm">
+                                                            {review.reviewer?.name || review.reviewer?.shopName || review.reviewer?.email || (typeof review.reviewer === 'string' ? `User ID: ${review.reviewer.substring(0, 8)}...` : 'Unknown User')}
+                                                        </p>
                                                         <p className="text-xs text-muted-foreground">{review.reviewerType}</p>
                                                     </div>
                                                 </div>
@@ -1175,7 +1173,9 @@ const AdminDashboard = () => {
                                             {/* Reviewee */}
                                             <div className="bg-accent/30 p-3 rounded-xl mb-4">
                                                 <p className="text-xs text-muted-foreground mb-1">Reviewed:</p>
-                                                <p className="font-bold text-sm">{review.reviewee?.name || review.reviewee?.shopName || 'Unknown'}</p>
+                                                <p className="font-bold text-sm">
+                                                    {review.reviewee?.name || review.reviewee?.shopName || review.reviewee?.email || (typeof review.reviewee === 'string' ? `Profile ID: ${review.reviewee.substring(0, 8)}...` : 'Unknown Profile')}
+                                                </p>
                                             </div>
 
                                             {/* Stars */}
@@ -1257,9 +1257,9 @@ const AdminDashboard = () => {
 
                                     {/* Mini Map (Desktop Only) */}
                                     <div className="hidden md:flex flex-1 min-h-[200px] rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-700 relative bg-zinc-100 dark:bg-zinc-800">
-                                        <MapComponent center={{ lat: selectedProvider.location.coordinates[1], lng: selectedProvider.location.coordinates[0] }} zoom={15}>
-                                            <Marker position={{ lat: selectedProvider.location.coordinates[1], lng: selectedProvider.location.coordinates[0] }} />
-                                        </MapComponent>
+                                        <LeafletMapComponent center={{ lat: selectedProvider.location.coordinates[1], lng: selectedProvider.location.coordinates[0] }} zoom={15} showControls={false}
+                                            markers={[{ position: { lat: selectedProvider.location.coordinates[1], lng: selectedProvider.location.coordinates[0] }, key: 'provider' }]}
+                                        />
                                         <div className="absolute bottom-3 left-3 right-3 bg-white/90 dark:bg-zinc-900/90 backdrop-blur px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
                                             <div className="flex items-center gap-2 text-xs font-mono text-zinc-600 dark:text-zinc-400">
                                                 <MapPin className="w-3.5 h-3.5" />
@@ -1372,9 +1372,9 @@ const AdminDashboard = () => {
 
                                         {/* Mobile Map (Visible only on small screens) */}
                                         <div className="md:hidden h-56 rounded-3xl overflow-hidden border border-zinc-200 dark:border-zinc-700 relative shadow-xl">
-                                            <MapComponent center={{ lat: selectedProvider.location.coordinates[1], lng: selectedProvider.location.coordinates[0] }} zoom={15}>
-                                                <Marker position={{ lat: selectedProvider.location.coordinates[1], lng: selectedProvider.location.coordinates[0] }} />
-                                            </MapComponent>
+                                            <LeafletMapComponent center={{ lat: selectedProvider.location.coordinates[1], lng: selectedProvider.location.coordinates[0] }} zoom={15} showControls={false}
+                                                markers={[{ position: { lat: selectedProvider.location.coordinates[1], lng: selectedProvider.location.coordinates[0] }, key: 'provider-mobile' }]}
+                                            />
                                         </div>
                                     </div>
 
@@ -1491,7 +1491,7 @@ const AdminDashboard = () => {
                                                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">Location Change Request</h3>
                                                     </div>
                                                     <div className="h-72 rounded-3xl overflow-hidden border border-zinc-200 dark:border-zinc-800 relative bg-zinc-100 dark:bg-zinc-800 shadow-inner">
-                                                        <MapComponent
+                                                        <LeafletMapComponent
                                                             center={
                                                                 updateRequest.pendingUpdate.data.location.coordinates
                                                                     ? {
@@ -1501,29 +1501,26 @@ const AdminDashboard = () => {
                                                                     : { lat: 19.0760, lng: 72.8777 }
                                                             }
                                                             zoom={15}
-                                                        >
-                                                            {/* Current Location (Old) */}
-                                                            {updateRequest.location && updateRequest.location.coordinates && (
-                                                                <Marker
-                                                                    position={{
+                                                            showControls={false}
+                                                            markers={[
+                                                                ...(updateRequest.location?.coordinates ? [{
+                                                                    position: {
                                                                         lat: updateRequest.location.coordinates[1],
                                                                         lng: updateRequest.location.coordinates[0]
-                                                                    }}
-                                                                    icon="http://maps.google.com/mapfiles/ms/icons/red-dot.png"
-                                                                />
-                                                            )}
-
-                                                            {/* Requested Location (New) */}
-                                                            {updateRequest.pendingUpdate.data.location?.coordinates && (
-                                                                <Marker
-                                                                    position={{
+                                                                    },
+                                                                    icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                                                                    key: 'current-location'
+                                                                }] : []),
+                                                                ...(updateRequest.pendingUpdate.data.location?.coordinates ? [{
+                                                                    position: {
                                                                         lat: updateRequest.pendingUpdate.data.location.coordinates[1],
                                                                         lng: updateRequest.pendingUpdate.data.location.coordinates[0]
-                                                                    }}
-                                                                    icon="http://maps.google.com/mapfiles/ms/icons/green-dot.png"
-                                                                />
-                                                            )}
-                                                        </MapComponent>
+                                                                    },
+                                                                    icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
+                                                                    key: 'new-location'
+                                                                }] : [])
+                                                            ]}
+                                                        />
 
                                                         {/* Legend Overlay */}
                                                         <div className="absolute top-4 left-4 flex flex-col gap-3 bg-white/90 dark:bg-zinc-900/90 backdrop-blur border border-zinc-200 dark:border-zinc-800 p-3 rounded-2xl text-[10px] font-black shadow-xl">
@@ -1544,13 +1541,13 @@ const AdminDashboard = () => {
                                         <div className="pt-8 flex gap-4 sticky bottom-0 bg-white dark:bg-zinc-950 z-10">
                                             <button
                                                 onClick={() => handleRejectUpdate(updateRequest._id)}
-                                                className="flex-1 py-4 bg-zinc-100 hover:bg-red-50 dark:bg-zinc-900 dark:hover:bg-red-500/10 text-zinc-500 hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400 font-black rounded-2xl text-[10px] uppercase tracking-widest border border-zinc-200 dark:border-zinc-800 hover:border-red-200 dark:hover:border-red-500/30 transition-all active:scale-95"
+                                                className="flex-1 py-4 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 font-black rounded-2xl text-[10px] uppercase tracking-widest border border-red-200 dark:border-red-900/50 transition-all active:scale-95"
                                             >
                                                 Reject Update
                                             </button>
                                             <button
                                                 onClick={() => handleApproveUpdate(updateRequest._id)}
-                                                className="flex-1 py-4 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-blue-600 dark:hover:bg-blue-500 dark:hover:text-white shadow-xl shadow-zinc-500/10 hover:shadow-blue-500/30 transition-all active:scale-95"
+                                                className="flex-1 py-4 bg-green-500 hover:bg-green-600 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-green-500/20 hover:shadow-green-500/40 transition-all active:scale-95"
                                             >
                                                 Approve Changes
                                             </button>

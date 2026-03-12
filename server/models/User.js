@@ -8,7 +8,7 @@ const UserSchema = new mongoose.Schema({
     password: { type: String },
     vehicles: [{
         model: { type: String },
-        fuelType: { type: String, enum: ['Petrol', 'Diesel', 'CNG', 'Electric'] },
+        fuelType: { type: String, enum: ['Petrol', 'Diesel', 'Electric'] },
         plateNumber: { type: String }
     }],
     role: { type: String, default: 'user' }, // user, provider, admin

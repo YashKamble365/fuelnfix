@@ -229,7 +229,7 @@ const Receipt = ({
                             Thank you for choosing FuelnFix! 🚗
                         </p>
                         <p className="text-xs text-gray-400 mt-1">
-                            For support, contact: support@fuelnfix.com
+                            For support, contact: fuelnfix1@gmail.com
                         </p>
                     </div>
                 </div>

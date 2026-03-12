@@ -21,7 +21,6 @@ const seedDefaults = async () => {
         { serviceName: 'Flat Tire', basePrice: 300, description: 'Puncture repair or tyre change' },
         { serviceName: 'Dead Battery', basePrice: 500, description: 'Jumpstart service' },
         { serviceName: 'Towing', basePrice: 1200, pricePerKm: 40, description: 'Base fare for first 5km + rate per km' },
-        { serviceName: 'Fuel Delivery', basePrice: 200, description: 'Service charge only. Fuel cost extra.' },
         { serviceName: 'Key Lockout', basePrice: 600, description: 'Car door unlocking service' },
         { serviceName: 'Engine Trouble', basePrice: 500, description: 'Initial inspection and minor fixes' },
         // EV Specific Services

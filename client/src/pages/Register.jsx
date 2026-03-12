@@ -3,25 +3,20 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../lib/api';
 import { useToast } from '../components/Toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Car, Wrench, Loader2, MapPin, CheckCircle, Mail, ArrowRight, Camera, Upload, Search, Fuel, BatteryCharging } from 'lucide-react';
+import { User, Car, Wrench, Loader2, MapPin, CheckCircle, Mail, ArrowRight, Camera, Upload, Search, Fuel, BatteryCharging, Maximize, X } from 'lucide-react';
 import { auth, googleProvider } from '../firebaseConfig';
 import { signInWithPopup } from 'firebase/auth';
-import { Marker, useJsApiLoader } from '@react-google-maps/api';
-import MapComponent from '../components/GoogleMaps/MapComponent';
-
-const libraries = ['geometry'];
+import { useTheme } from '../components/theme-provider';
+import LeafletMapComponent from '../components/LeafletMapComponent';
 
 const Register = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { theme } = useTheme();
+    const [step, setStep] = useState(1);
     const toast = useToast();
 
-    // Load Maps API for Autocomplete
-    const { isLoaded: isMapsLoaded } = useJsApiLoader({
-        id: 'google-map-script',
-        googleMapsApiKey: "AIzaSyDta1Z02aqGopcvuZTLPH1-AJRehMRDTAM",
-        libraries
-    });
+
 
     // Initial state
     const [formData, setFormData] = useState({
@@ -32,7 +27,7 @@ const Register = () => {
         vehicleModel: '',
         vehicleFuel: 'Petrol',
         vehiclePlate: '',
-        // Provider Fields
+        phone: '+91',
         shopName: '',
         providerCategory: [], // ['Mechanic', 'Fuel Delivery']
         services: [],
@@ -47,6 +42,8 @@ const Register = () => {
     const [uploading, setUploading] = useState(false);
     const [searchInput, setSearchInput] = useState('');
     const [searchLoading, setSearchLoading] = useState(false);
+    const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+    const [canRenderModalMap, setCanRenderModalMap] = useState(false);
     const [googleUser, setGoogleUser] = useState(null);
     const [hasAuthenticated, setHasAuthenticated] = useState(false); // Track if user authenticated in this session
 
@@ -75,11 +72,24 @@ const Register = () => {
 
     const handleCategoryToggle = (category) => {
         const current = formData.providerCategory;
+        let newCategories;
+        let newServices = [...formData.services];
+
         if (current.includes(category)) {
-            setFormData({ ...formData, providerCategory: current.filter(c => c !== category) });
+            newCategories = current.filter(c => c !== category);
+            // If Fuel Delivery is removed, remove automatic services
+            if (category === 'Fuel Delivery') {
+                newServices = newServices.filter(s => s !== 'Petrol' && s !== 'Diesel');
+            }
         } else {
-            setFormData({ ...formData, providerCategory: [...current, category] });
+            newCategories = [...current, category];
+            // If Fuel Delivery is added, auto-add specific services if not already present
+            if (category === 'Fuel Delivery') {
+                if (!newServices.includes('Petrol')) newServices.push('Petrol');
+                if (!newServices.includes('Diesel')) newServices.push('Diesel');
+            }
         }
+        setFormData({ ...formData, providerCategory: newCategories, services: newServices });
     };
 
     const handleServiceToggle = (service) => {
@@ -105,6 +115,7 @@ const Register = () => {
                     address: data[0].display_name,
                     location: { lat, lng }
                 }));
+                setIsMapModalOpen(true);
             } else {
                 alert("Location not found. Please try to be more specific or drag the marker on the map.");
             }
@@ -116,6 +127,31 @@ const Register = () => {
         }
     };
 
+    // Reset render flag when modal closes
+    useEffect(() => {
+        if (!isMapModalOpen) setCanRenderModalMap(false);
+    }, [isMapModalOpen]);
+
+    const handleMapClick = async (e) => {
+        if (e && e.latlng) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            setMapCenter({ lat, lng });
+            setFormData(prev => ({ ...prev, location: { lat, lng } }));
+
+            // Reverse Geocode to get accurate address
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                const data = await res.json();
+                if (data && data.display_name) {
+                    setFormData(prev => ({ ...prev, address: data.display_name }));
+                }
+            } catch (err) {
+                console.error("Reverse Geocoding Error:", err);
+            }
+        }
+    };
+
     const handleSearchKeyDown = (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -123,10 +159,21 @@ const Register = () => {
         }
     };
 
-    const handleMarkerDragEnd = (e) => {
+    const handleMarkerDragEnd = async (e) => {
         const lat = e.latLng.lat();
         const lng = e.latLng.lng();
         setFormData(prev => ({ ...prev, location: { lat, lng } }));
+
+        // Reverse Geocode to get accurate address
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+            const data = await res.json();
+            if (data && data.display_name) {
+                setFormData(prev => ({ ...prev, address: data.display_name }));
+            }
+        } catch (err) {
+            console.error("Reverse Geocoding Error:", err);
+        }
     };
 
     const handleImageUpload = async (e) => {
@@ -222,6 +269,7 @@ const Register = () => {
             let payload = {
                 name: formData.name,
                 email: formData.email,
+                phone: formData.phone,
                 password: formData.password,
                 role: formData.role,
                 photoUrl: googleUser?.photoUrl || ''
@@ -285,23 +333,17 @@ const Register = () => {
             const response = await api.post('/api/auth/register', payload);
             console.log("Registration successful:", response.data);
 
-            // If manual registration returning a token, auto-login
-            if (response.data.token && response.data.user) {
-                localStorage.setItem('user', JSON.stringify(response.data.user));
-                localStorage.setItem('token', response.data.token);
-            }
-
-            toast.success("Account created successfully!");
-
-            // Add a small delay regarding navigation to ensure toast is seen and state is settled
-            setTimeout(() => {
-                if (formData.role === 'provider') {
+            if (formData.role === 'provider') {
+                toast.success("Registration successful! Your profile is pending verification.");
+                setTimeout(() => {
                     navigate('/verification-pending');
-                } else {
-                    navigate('/dashboard');
-                }
-            }, 1000);
-
+                }, 2000);
+            } else {
+                toast.success("You have successfully registered. Now login to continue.");
+                setTimeout(() => {
+                    navigate('/login');
+                }, 2000);
+            }
         } catch (err) {
             console.error("Registration Error:", err);
             // Handle specifically if it's a 404 (which shouldn't happen for register, but just in case)
@@ -373,6 +415,28 @@ const Register = () => {
                 )}
 
                 <form className="space-y-8" onSubmit={handleSubmit}>
+                    {/* Role Selection */}
+                    <div className="space-y-6">
+                        <div className="flex justify-center gap-4 py-4">
+                            <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, role: 'user' })}
+                                className={`flex-1 max-w-[200px] h-28 p-4 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 ${formData.role === 'user' ? 'bg-blue-500 text-white border-blue-500 shadow-xl shadow-blue-500/20 scale-105' : 'bg-background/50 border-border hover:border-blue-500/30 text-muted-foreground hover:bg-background/80'}`}
+                            >
+                                <User className="w-8 h-8" />
+                                <span className="font-bold">User</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, role: 'provider' })}
+                                className={`flex-1 max-w-[200px] h-28 p-4 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 ${formData.role === 'provider' ? 'bg-blue-500 text-white border-blue-500 shadow-xl shadow-blue-500/20 scale-105' : 'bg-background/50 border-border hover:border-blue-500/30 text-muted-foreground hover:bg-background/80'}`}
+                            >
+                                <Wrench className="w-8 h-8" />
+                                <span className="font-bold">Provider</span>
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Basic Info */}
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div className="space-y-2">
@@ -399,6 +463,18 @@ const Register = () => {
                                 required
                             />
                         </div>
+                        <div className="space-y-2 sm:col-span-2">
+                            <label className="text-sm font-bold ml-1 text-foreground/80">Phone Number</label>
+                            <input
+                                name="phone"
+                                type="tel"
+                                placeholder="+91 XXXXX XXXXX"
+                                className="block w-full px-4 h-14 rounded-2xl border border-border bg-background/50 text-foreground shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-bold"
+                                value={formData.phone}
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
                         {!hasAuthenticated && (
                             <div className="space-y-2 sm:col-span-2">
                                 <label className="text-sm font-bold ml-1 text-foreground/80">Password</label>
@@ -415,26 +491,6 @@ const Register = () => {
                         )}
                     </div>
 
-                    {/* Role Selection */}
-                    <div className="space-y-6">
-                        <div className="flex justify-center gap-4 py-4">
-                            <button
-                                type="button"
-                                onClick={() => setFormData({ ...formData, role: 'user' })}
-                                className={`flex-1 max-w-[200px] h-28 p-4 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 ${formData.role === 'user' ? 'bg-blue-500 text-white border-blue-500 shadow-xl shadow-blue-500/20 scale-105' : 'bg-background/50 border-border hover:border-blue-500/30 text-muted-foreground hover:bg-background/80'}`}
-                            >
-                                <Car className="w-8 h-8" />
-                                <span className="font-bold">User</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setFormData({ ...formData, role: 'provider' })}
-                                className={`flex-1 max-w-[200px] h-28 p-4 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 ${formData.role === 'provider' ? 'bg-blue-500 text-white border-blue-500 shadow-xl shadow-blue-500/20 scale-105' : 'bg-background/50 border-border hover:border-blue-500/30 text-muted-foreground hover:bg-background/80'}`}
-                            >
-                                <Wrench className="w-8 h-8" />
-                                <span className="font-bold">Provider</span>
-                            </button>
-                        </div>
 
                         <AnimatePresence mode="wait">
                             {formData.role === 'user' ? (
@@ -466,7 +522,6 @@ const Register = () => {
                                             >
                                                 <option value="Petrol">Petrol</option>
                                                 <option value="Diesel">Diesel</option>
-                                                <option value="CNG">CNG</option>
                                                 <option value="Electric">Electric</option>
                                             </select>
                                         </div>
@@ -576,69 +631,70 @@ const Register = () => {
                                     </div>
 
                                     {/* Location Map */}
-                                    {isMapsLoaded ? (
-                                        <div className="bg-card/40 p-6 rounded-3xl border border-border space-y-4">
-                                            <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-2 text-blue-500">
-                                                <MapPin className="w-4 h-4" /> Location Verification
-                                            </h3>
+                                    <div className="bg-card/40 p-6 rounded-3xl border border-border space-y-4">
+                                        <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-2 text-blue-500">
+                                            <MapPin className="w-4 h-4" /> Location Verification
+                                        </h3>
 
-                                            {/* Manual Location Search */}
-                                            <div className="relative flex gap-2">
-                                                <div className="relative flex-1">
-                                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                                        <Search className="h-5 w-5 text-muted-foreground" />
-                                                    </div>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Search shop location (e.g. Pune Station)"
-                                                        value={searchInput}
-                                                        onChange={(e) => setSearchInput(e.target.value)}
-                                                        onKeyDown={handleSearchKeyDown}
-                                                        className="block w-full pl-12 pr-4 h-14 rounded-2xl border border-border bg-background focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                                                    />
+                                        {/* Manual Location Search */}
+                                        <div className="relative flex gap-2">
+                                            <div className="relative flex-1">
+                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                    <Search className="h-5 w-5 text-muted-foreground" />
                                                 </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleManualSearch}
-                                                    disabled={searchLoading}
-                                                    className="px-6 h-14 bg-blue-500 text-white font-bold rounded-2xl hover:bg-blue-600 active:scale-95 transition-all flex items-center justify-center min-w-[100px]"
-                                                >
-                                                    {searchLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Search'}
-                                                </button>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search shop location (e.g. Pune Station)"
+                                                    value={searchInput}
+                                                    onChange={(e) => setSearchInput(e.target.value)}
+                                                    onKeyDown={handleSearchKeyDown}
+                                                    className="block w-full pl-12 pr-4 h-14 rounded-2xl border border-border bg-background focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                                                />
                                             </div>
+                                            <button
+                                                type="button"
+                                                onClick={handleManualSearch}
+                                                disabled={searchLoading}
+                                                className="px-6 h-14 bg-blue-500 text-white font-bold rounded-2xl hover:bg-blue-600 active:scale-95 transition-all flex items-center justify-center min-w-[100px]"
+                                            >
+                                                {searchLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Search'}
+                                            </button>
+                                        </div>
 
-                                            <div className="h-[300px] w-full rounded-2xl overflow-hidden border border-border/50 relative">
-                                                <MapComponent
-                                                    center={mapCenter || { lat: 19.0760, lng: 72.8777 }}
-                                                    zoom={mapCenter ? 15 : 11}
-                                                >
-                                                    {/* Draggable Marker */}
-                                                    {formData.location && (
-                                                        <Marker
-                                                            position={formData.location}
-                                                            draggable={true}
-                                                            onDragEnd={handleMarkerDragEnd}
-                                                            icon={{
-                                                                url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
-                                                            }}
-                                                        />
-                                                    )}
-                                                </MapComponent>
-                                                {!formData.location && (
-                                                    <div className="absolute inset-0 z-10 bg-black/40 backdrop-blur-sm flex items-center justify-center pointer-events-none">
-                                                        <p className="text-white font-bold bg-black/50 px-4 py-2 rounded-full">Search your location above</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <p className="text-xs text-muted-foreground text-center">
-                                                Search for your address, then <strong>drag the blue marker</strong> to your exact shop entrance.
-                                            </p>
+                                        <div className="h-[300px] w-full rounded-2xl overflow-hidden border border-border/50 relative">
+                                            <LeafletMapComponent
+                                                center={mapCenter || { lat: 19.0760, lng: 72.8777 }}
+                                                zoom={mapCenter ? 15 : 11}
+                                                showControls={true}
+                                                onClick={handleMapClick}
+                                                forceDark={theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)}
+                                                markers={formData.location ? [{
+                                                    position: formData.location,
+                                                    draggable: true,
+                                                    onDragEnd: handleMarkerDragEnd,
+                                                    icon: { url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png' },
+                                                    key: 'shop-location'
+                                                }] : []}
+                                            />
+                                            {/* Expand Button */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsMapModalOpen(true)}
+                                                className="absolute top-4 right-4 z-[1000] p-3 bg-background/90 backdrop-blur rounded-xl shadow-lg border border-border hover:bg-accent text-foreground transition-all"
+                                                title="Full Screen Map"
+                                            >
+                                                <Maximize className="w-5 h-5" />
+                                            </button>
+                                            {!formData.location && (
+                                                <div className="absolute inset-0 z-10 bg-black/40 backdrop-blur-sm flex items-center justify-center pointer-events-none">
+                                                    <p className="text-white font-bold bg-black/50 px-4 py-2 rounded-full">Search your location above</p>
+                                                </div>
+                                            )}
                                         </div>
-                                    ) : (
-                                        <div className="h-32 flex items-center justify-center bg-card/50 rounded-3xl border border-border">
-                                            <p className="text-muted-foreground animate-pulse">Loading Google Maps...</p>
-                                        </div>
-                                    )}
+                                        <p className="text-xs text-muted-foreground text-center">
+                                            Search for your address, then <strong>drag the blue marker</strong> to your exact shop entrance.
+                                        </p>
+                                    </div>
 
                                     {/* Photo Upload (Real) */}
                                     <input
@@ -686,7 +742,6 @@ const Register = () => {
                                 </motion.div>
                             )}
                         </AnimatePresence>
-                    </div>
 
                     <button
                         type="submit"
@@ -706,6 +761,85 @@ const Register = () => {
                     </p>
                 </div>
             </motion.div>
+
+            {/* --- Full Screen Map Modal --- */}
+            <AnimatePresence>
+                {isMapModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex flex-col p-4 md:p-8"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            onAnimationComplete={() => setCanRenderModalMap(true)}
+                            className="relative flex-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] overflow-hidden shadow-2xl flex flex-col"
+                        >
+                            {/* Header */}
+                            <div className="flex items-center justify-between p-4 md:p-6 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 z-10 shrink-0">
+                                <div>
+                                    <h3 className="text-xl font-bold flex items-center gap-2 text-zinc-900 dark:text-zinc-50">
+                                        <MapPin className="w-5 h-5 text-blue-500" />
+                                        Pinpoint Location
+                                    </h3>
+                                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Drag the marker exactly to your shop's entrance.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsMapModalOpen(false)}
+                                    className="p-3 bg-zinc-200/50 dark:bg-zinc-800/50 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-xl transition-all"
+                                >
+                                    <X className="w-6 h-6 text-zinc-600 dark:text-zinc-400" />
+                                </button>
+                            </div>
+
+                            {/* Map */}
+                            <div className="flex-1 relative z-0 bg-zinc-100 dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800">
+                                {canRenderModalMap ? (
+                                    <LeafletMapComponent
+                                        center={mapCenter || { lat: 19.0760, lng: 72.8777 }}
+                                        zoom={17}
+                                        showControls={true}
+                                        onClick={handleMapClick}
+                                        forceDark={theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)}
+                                        markers={formData.location ? [{
+                                            position: formData.location,
+                                            draggable: true,
+                                            onDragEnd: handleMarkerDragEnd,
+                                            icon: { url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png' },
+                                            key: 'shop-location-fullscreen'
+                                        }] : []}
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center gap-4">
+                                        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                                        <p className="text-sm font-bold text-zinc-500 animate-pulse">Initializing Map Engine...</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer / Confirm */}
+                            <div className="p-4 md:p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 z-10 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <div className="text-sm font-medium line-clamp-2 w-full sm:flex-1 text-zinc-700 dark:text-zinc-300">
+                                    <span className="text-zinc-500 dark:text-zinc-500 font-bold mr-2 uppercase tracking-wider text-[10px]">Current Selection</span>
+                                    <br />
+                                    {formData.address || "No location selected"}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsMapModalOpen(false)}
+                                    className="w-full sm:w-auto px-10 py-4 bg-blue-500 hover:bg-blue-600 text-white font-black rounded-2xl text-xs uppercase tracking-[0.15em] shadow-xl shadow-blue-500/20 active:scale-95 transition-all"
+                                >
+                                    Confirm Details
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

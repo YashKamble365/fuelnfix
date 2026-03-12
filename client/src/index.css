@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@variant dark (&:is(.dark *));
+
 @theme {
     --color-border: hsl(var(--border));
     --color-input: hsl(var(--input));
@@ -35,8 +37,8 @@
     --font-sans: "Inter", system-ui, sans-serif;
 
     --animate-gradient-xy: gradient-xy 15s ease infinite;
-    --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    --animate-float: float 6s ease-in-out infinite;
+    --animate-pulse-slow: pulse-slow 6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    --animate-float: float 8s ease-in-out infinite;
 
     @keyframes gradient-xy {
 
@@ -50,13 +52,25 @@
         }
     }
 
+    @keyframes pulse-slow {
+
+        0%,
+        100% {
+            opacity: 0.6;
+        }
+
+        50% {
+            opacity: 1;
+        }
+    }
+
     @keyframes float {
         0% {
             transform: translateY(0px);
         }
 
         50% {
-            transform: translateY(-20px);
+            transform: translateY(-12px);
         }
 
         100% {

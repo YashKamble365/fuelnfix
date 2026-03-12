@@ -1,4 +1,4 @@
-import { motion, useMotionValue, useSpring, useScroll, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import {
@@ -19,61 +19,18 @@ import {
     Network,
     ChevronRight
 } from 'lucide-react';
-import { useRef } from 'react';
-import CoverageMap from '../components/GoogleMaps/CoverageMap';
+import { lazy, Suspense } from 'react';
 
-const Card3D = ({ children, className }) => {
-    const ref = useRef(null);
-    const x = useMotionValue(0);
-    const y = useMotionValue(0);
-
-    const mouseXSpring = useSpring(x);
-    const mouseYSpring = useSpring(y);
-
-    const transform = useTransform(
-        [mouseXSpring, mouseYSpring],
-        ([latestX, latestY]) =>
-            `rotateY(${latestX / 20}deg) rotateX(${latestY / -20}deg)`
-    );
-
-    const handleMouseMove = (e) => {
-        if (!ref.current) return;
-        const rect = ref.current.getBoundingClientRect();
-        const width = rect.width;
-        const height = rect.height;
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-        const xPct = mouseX / width - 0.5;
-        const yPct = mouseY / height - 0.5;
-        x.set(xPct * 20);
-        y.set(yPct * 20);
-    };
-
-    const handleMouseLeave = () => {
-        x.set(0);
-        y.set(0);
-    };
-
-    return (
-        <motion.div
-            ref={ref}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-            style={{ transformStyle: "preserve-3d", transform }}
-            className={className}
-        >
-            {children}
-        </motion.div>
-    );
-};
+// Lazy-load CoverageMap — only loads when user scrolls to coverage section
+const CoverageMap = lazy(() => import('../components/LeafletCoverageMap'));
 
 const ScrollReveal = ({ children, delay = 0 }) => {
     return (
         <motion.div
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8, delay, ease: [0.21, 0.47, 0.32, 0.98] }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.5, delay, ease: [0.21, 0.47, 0.32, 0.98] }}
         >
             {children}
         </motion.div>
@@ -81,45 +38,37 @@ const ScrollReveal = ({ children, delay = 0 }) => {
 };
 
 const Home = () => {
-    const mouseX = useMotionValue(0);
-    const mouseY = useMotionValue(0);
-
-    const onMouseMove = (e) => {
-        const { clientX, clientY } = e;
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
-        mouseX.set(clientX - centerX);
-        mouseY.set(clientY - centerY);
-    };
-
-    const mouseXSpring = useSpring(mouseX, { stiffness: 50, damping: 20 });
-    const mouseYSpring = useSpring(mouseY, { stiffness: 50, damping: 20 });
-
     return (
-        <div className="min-h-screen bg-background font-sans selection:bg-blue-500/30 selection:text-white overflow-x-hidden perspective-1000 landing-blue-theme" onMouseMove={onMouseMove}>
+        <div className="min-h-screen bg-background font-sans selection:bg-blue-500/30 selection:text-white overflow-x-hidden landing-blue-theme">
             <Navbar />
 
             {/* Hero Section */}
             <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-28 md:pt-20">
-                {/* Premium Background Effects */}
-                <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-blue-950/5 dark:to-blue-950/20 z-0">
-                    {/* Animated Gradient Orbs */}
-                    <motion.div
-                        className="absolute top-1/2 left-1/2 w-[1200px] h-[1200px] bg-gradient-to-r from-blue-600/20 via-indigo-500/15 to-violet-500/10 rounded-full blur-[150px] -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-                        style={{ x: mouseXSpring, y: mouseYSpring }}
-                        animate={{ scale: [1, 1.15, 1], rotate: [0, 8, 0] }}
-                        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-                    />
-                    <div className="absolute top-0 right-0 w-[700px] h-[700px] bg-gradient-to-bl from-blue-500/15 via-cyan-400/10 to-transparent blur-[120px] rounded-full animate-pulse-slow"></div>
-                    <div className="absolute bottom-0 left-0 w-[700px] h-[700px] bg-gradient-to-tr from-indigo-500/10 via-blue-400/5 to-transparent blur-[120px] rounded-full animate-pulse-slow" style={{ animationDelay: '3s' }}></div>
-                    <div className="absolute top-1/3 left-1/4 w-[400px] h-[400px] bg-gradient-to-r from-violet-500/10 to-fuchsia-500/5 blur-[100px] rounded-full animate-float"></div>
-                    <div className="absolute bottom-1/3 right-1/4 w-[300px] h-[300px] bg-gradient-to-r from-cyan-500/8 to-blue-500/5 blur-[80px] rounded-full animate-float" style={{ animationDelay: '5s' }}></div>
+                {/* Premium Background Effects — Matching Gradient Mesh */}
+                <div className="absolute inset-0 bg-background overflow-hidden z-0">
+                    {/* Primary Mesh Gradient */}
+                    <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] opacity-40 dark:opacity-20 pointer-events-none"
+                        style={{
+                            background: `
+                                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+                                radial-gradient(at 50% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                                radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                                radial-gradient(at 100% 50%, rgba(59, 130, 246, 0.1) 0px, transparent 50%),
+                                radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                                radial-gradient(at 0% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                                radial-gradient(at 0% 50%, rgba(59, 130, 246, 0.1) 0px, transparent 50%)
+                            `,
+                            filter: 'blur(60px)'
+                        }}
+                    ></div>
 
-                    {/* Refined Grid Pattern */}
-                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#3b82f608_1px,transparent_1px),linear-gradient(to_bottom,#3b82f608_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black_40%,transparent_100%)]"></div>
+                    {/* Animated Mesh Orbs for Dynamic Feel */}
+                    <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px] animate-pulse-slow will-change-transform"></div>
+                    <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-indigo-500/10 rounded-full blur-[120px] animate-pulse-slow will-change-transform" style={{ animationDelay: '2s' }}></div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-violet-500/5 rounded-full blur-[150px] animate-pulse-slow will-change-transform" style={{ animationDelay: '4s' }}></div>
 
-                    {/* Noise Texture Overlay */}
-                    <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03] bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iMSIvPjwvc3ZnPg==')]"></div>
+                    {/* Refined Grid Pattern Overlay */}
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#3b82f608_1px,transparent_1px),linear-gradient(to_bottom,#3b82f608_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black_40%,transparent_100%)] opacity-50"></div>
                 </div>
 
                 <div className="relative z-10 max-w-7xl mx-auto px-4 text-center">
@@ -137,15 +86,6 @@ const Home = () => {
                         </span>
                     </motion.h1>
 
-                    {/* Tagline */}
-                    <motion.p
-                        initial={{ opacity: 0, y: 15 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.15 }}
-                        className="text-xl md:text-2xl text-foreground/60 font-semibold mb-6 tracking-tight"
-                    >
-                        Roadside Assistance, <span className="bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">Reimagined.</span>
-                    </motion.p>
 
                     {/* Refined Subtitle */}
                     <motion.p
@@ -240,7 +180,7 @@ const Home = () => {
                         {/* 1. Haversine Algorithm Card */}
                         <div className="md:col-span-8">
                             <ScrollReveal delay={0.1}>
-                                <div className="h-full bg-gradient-to-br from-card/80 via-card to-blue-950/5 dark:to-blue-950/20 rounded-[2rem] border border-border/50 p-10 relative overflow-hidden group hover:border-blue-500/30 transition-all duration-500 shadow-xl shadow-black/5 dark:shadow-blue-500/5 backdrop-blur-xl">
+                                <div className="h-full bg-gradient-to-br from-card/80 via-card to-blue-950/5 dark:to-blue-950/20 rounded-[2rem] border border-border/50 p-10 relative overflow-hidden group hover:border-blue-500/30 transition-colors duration-300 shadow-xl shadow-black/5 dark:shadow-blue-500/5">
                                     {/* Gradient Orb */}
                                     <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-blue-500/20 via-indigo-500/10 to-transparent blur-3xl opacity-60 group-hover:opacity-100 transition-opacity duration-500"></div>
                                     <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity transform group-hover:scale-110 duration-700">
@@ -402,7 +342,7 @@ const Home = () => {
             <section id="pricing" className="py-32 bg-gradient-to-b from-background to-blue-950/5 dark:to-blue-950/10 scroll-mt-20 relative overflow-hidden">
                 {/* Background Elements */}
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#3b82f603_1px,transparent_1px),linear-gradient(to_bottom,#3b82f603_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-blue-500/5 via-indigo-500/5 to-violet-500/5 blur-3xl rounded-full pointer-events-none"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-r from-blue-500/5 via-indigo-500/5 to-violet-500/5 blur-2xl rounded-full pointer-events-none"></div>
 
                 <div className="max-w-7xl mx-auto px-4 relative">
                     <ScrollReveal>
@@ -442,29 +382,27 @@ const Home = () => {
                             </div>
                         </ScrollReveal>
 
-                        {/* Fuel Delivery - Highlighted */}
+                        {/* Fuel Delivery */}
                         <ScrollReveal delay={0.2}>
-                            <div className="h-full bg-foreground text-background dark:bg-card dark:text-foreground rounded-[2.5rem] p-10 shadow-2xl shadow-blue-500/20 relative scale-105 border border-blue-500/20 dark:border-blue-500">
-                                <div className="absolute top-6 right-6 bg-blue-500 px-4 py-1.5 rounded-full text-xs font-bold text-white uppercase tracking-wider shadow-lg shadow-blue-500/40">Popular choice</div>
-
-                                <div className="w-14 h-14 bg-white/10 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center mb-8">
-                                    <Fuel className="w-7 h-7 text-blue-500" />
+                            <div className="h-full bg-card rounded-[2.5rem] border border-border p-10 hover:shadow-2xl hover:shadow-blue-500/5 transition-all relative group">
+                                <div className="w-14 h-14 bg-muted rounded-2xl flex items-center justify-center mb-8 group-hover:bg-blue-500/10 group-hover:text-blue-500 transition-colors">
+                                    <Fuel className="w-7 h-7 text-foreground group-hover:text-blue-500 transition-colors" />
                                 </div>
-                                <h3 className="text-2xl font-bold mb-2 text-inherit">Fuel Delivery</h3>
-                                <p className="text-inherit opacity-60 text-sm mb-8">Petrol/Diesel delivered to GPS pin.</p>
+                                <h3 className="text-2xl font-bold mb-2">Fuel Delivery</h3>
+                                <p className="text-muted-foreground text-sm mb-8">Petrol/Diesel delivered to GPS pin.</p>
 
                                 <div className="mb-8">
-                                    <span className="text-5xl font-black tracking-tighter text-inherit">₹110</span>
-                                    <span className="text-inherit opacity-60 font-medium"> / fixed fee</span>
+                                    <span className="text-5xl font-black tracking-tighter">₹105</span>
+                                    <span className="text-muted-foreground font-medium"> / per Liters</span>
                                 </div>
 
-                                <ul className="space-y-4 mb-10 text-sm font-medium text-inherit opacity-80">
+                                <ul className="space-y-4 mb-10 text-sm font-medium text-muted-foreground">
                                     <li className="flex items-center gap-3"><Check className="w-5 h-5 text-blue-500" /> Minimum 5 Liters</li>
                                     <li className="flex items-center gap-3"><Check className="w-5 h-5 text-blue-500" /> 24/7 Availability</li>
                                     <li className="flex items-center gap-3"><Check className="w-5 h-5 text-blue-500" /> Fastest Arrival</li>
                                 </ul>
 
-                                <Link to="/login" className="block w-full py-4 bg-blue-500 text-white text-center rounded-xl font-bold hover:bg-blue-500/90 transition-all shadow-lg shadow-blue-500/25">Order Fuel</Link>
+                                <Link to="/login" className="block w-full py-4 border border-border hover:border-blue-500 hover:bg-blue-500/5 text-foreground text-center rounded-xl font-bold transition-all">Order Fuel</Link>
                             </div>
                         </ScrollReveal>
 
@@ -499,7 +437,7 @@ const Home = () => {
             <section id="reviews" className="py-32 bg-gradient-to-b from-background via-background to-blue-950/5 dark:to-blue-950/10 relative overflow-hidden scroll-mt-20">
                 {/* Background Elements */}
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#3b82f605_1px,transparent_1px),linear-gradient(to_bottom,#3b82f605_1px,transparent_1px)] bg-[size:80px_80px] pointer-events-none"></div>
-                <div className="absolute top-1/2 right-0 w-[500px] h-[500px] bg-gradient-to-l from-blue-500/10 via-indigo-500/5 to-transparent blur-[100px] rounded-full pointer-events-none"></div>
+                <div className="absolute top-1/2 right-0 w-[300px] h-[300px] bg-gradient-to-l from-blue-500/8 via-indigo-500/5 to-transparent blur-[60px] rounded-full pointer-events-none"></div>
 
                 <div className="max-w-7xl mx-auto px-4 relative">
                     <ScrollReveal>
@@ -541,7 +479,7 @@ const Home = () => {
                         ].map((testimonial, index) => (
 
                             <ScrollReveal key={index} delay={index * 0.1}>
-                                <div className="h-full bg-gradient-to-br from-card/80 via-card to-blue-950/5 dark:to-blue-950/20 rounded-[2rem] border border-border/50 p-8 relative overflow-hidden group hover:border-blue-500/30 transition-all duration-500 shadow-xl shadow-black/5 dark:shadow-blue-500/5 backdrop-blur-xl">
+                                <div className="h-full bg-gradient-to-br from-card/80 via-card to-blue-950/5 dark:to-blue-950/20 rounded-[2rem] border border-border/50 p-8 relative overflow-hidden group hover:border-blue-500/30 transition-colors duration-300 shadow-xl shadow-black/5 dark:shadow-blue-500/5">
                                     {/* Quote Icon */}
                                     <div className="absolute top-6 right-6 text-blue-500/10 text-8xl font-serif">"</div>
 
@@ -623,9 +561,15 @@ const Home = () => {
 
                         <ScrollReveal delay={0.2}>
                             <div className="relative">
-                                {/* Google Maps Coverage Visualization */}
+                                {/* Google Maps Coverage Visualization — lazy-loaded */}
                                 <div className="aspect-square bg-gradient-to-br from-card via-card to-blue-950/10 rounded-[2.5rem] border border-border/50 relative overflow-hidden shadow-2xl shadow-blue-500/10">
-                                    <CoverageMap />
+                                    <Suspense fallback={
+                                        <div className="w-full h-full flex items-center justify-center bg-card/50">
+                                            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                        </div>
+                                    }>
+                                        <CoverageMap />
+                                    </Suspense>
                                 </div>
                             </div>
                         </ScrollReveal>
@@ -694,8 +638,8 @@ const Home = () => {
             <section className="py-32 bg-gradient-to-b from-background via-background to-blue-950/5 dark:to-blue-950/10 relative overflow-hidden">
                 {/* Background Elements */}
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#3b82f605_1px,transparent_1px),linear-gradient(to_bottom,#3b82f605_1px,transparent_1px)] bg-[size:80px_80px] pointer-events-none"></div>
-                <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-transparent blur-[100px] rounded-full pointer-events-none"></div>
-                <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-gradient-to-tl from-violet-500/10 via-indigo-500/5 to-transparent blur-[100px] rounded-full pointer-events-none"></div>
+                <div className="absolute top-0 left-0 w-[300px] h-[300px] bg-gradient-to-br from-blue-500/8 via-indigo-500/5 to-transparent blur-[60px] rounded-full pointer-events-none"></div>
+                <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-gradient-to-tl from-violet-500/8 via-indigo-500/5 to-transparent blur-[60px] rounded-full pointer-events-none"></div>
 
                 <div className="max-w-7xl mx-auto px-4 relative">
                     <ScrollReveal>
@@ -764,23 +708,19 @@ const Home = () => {
 
             {/* Emergency CTA - Premium Redesign */}
             <section className="py-40 bg-gradient-to-b from-background via-background to-blue-950/5 dark:to-blue-950/20 relative overflow-hidden">
-                {/* Premium Background Effects - Same as Hero */}
+                {/* Optimized Background Effects */}
                 <div className="absolute inset-0 z-0">
-                    <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-blue-500/15 via-cyan-400/10 to-transparent blur-[100px] rounded-full animate-pulse-slow"></div>
-                    <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-indigo-500/10 via-blue-400/5 to-transparent blur-[100px] rounded-full animate-pulse-slow" style={{ animationDelay: '3s' }}></div>
-                    <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-gradient-to-r from-violet-500/10 to-fuchsia-500/5 blur-[80px] rounded-full animate-float"></div>
+                    <div className="absolute top-0 right-0 w-[350px] h-[350px] bg-gradient-to-bl from-blue-500/12 via-cyan-400/8 to-transparent blur-[60px] rounded-full animate-pulse-slow will-change-transform"></div>
+                    <div className="absolute bottom-0 left-0 w-[350px] h-[350px] bg-gradient-to-tr from-indigo-500/8 via-blue-400/5 to-transparent blur-[60px] rounded-full animate-pulse-slow will-change-transform" style={{ animationDelay: '3s' }}></div>
 
                     {/* Refined Grid Pattern */}
                     <div className="absolute inset-0 bg-[linear-gradient(to_right,#3b82f608_1px,transparent_1px),linear-gradient(to_bottom,#3b82f608_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black_40%,transparent_100%)]"></div>
-
-                    {/* Noise Texture Overlay */}
-                    <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03] bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iMSIvPjwvc3ZnPg==')]"></div>
                 </div>
 
                 <div className="max-w-5xl mx-auto px-4 text-center relative z-10">
                     <ScrollReveal>
                         {/* Premium Icon */}
-                        <div className="inline-flex items-center justify-center w-28 h-28 rounded-3xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/20 mb-12 backdrop-blur-xl shadow-2xl shadow-blue-500/10">
+                        <div className="inline-flex items-center justify-center w-28 h-28 rounded-3xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/20 mb-12 shadow-2xl shadow-blue-500/10">
                             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/40">
                                 <Shield className="w-10 h-10 text-white" />
                             </div>
@@ -811,7 +751,7 @@ const Home = () => {
                             </Link>
                             <Link
                                 to="/login"
-                                className="h-18 px-12 py-5 rounded-2xl border border-border/50 hover:bg-accent/50 hover:border-blue-500/30 text-lg font-bold text-foreground transition-all duration-300 flex items-center gap-3 backdrop-blur-xl hover:scale-[1.02] active:scale-[0.98]"
+                                className="h-18 px-12 py-5 rounded-2xl border border-border/50 hover:bg-accent/50 hover:border-blue-500/30 text-lg font-bold text-foreground transition-colors duration-300 flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98]"
                             >
                                 Already a Member?
                             </Link>
@@ -826,7 +766,7 @@ const Home = () => {
             <footer className="relative bg-gradient-to-b from-background via-background to-blue-950/5 dark:to-blue-950/20 border-t border-border/50 overflow-hidden">
                 {/* Background Elements */}
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#3b82f605_1px,transparent_1px),linear-gradient(to_bottom,#3b82f605_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none"></div>
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-t from-blue-500/5 via-indigo-500/5 to-transparent blur-[100px] rounded-full pointer-events-none"></div>
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[500px] h-[250px] bg-gradient-to-t from-blue-500/5 via-indigo-500/5 to-transparent blur-[60px] rounded-full pointer-events-none"></div>
 
                 <div className="max-w-7xl mx-auto px-4 relative z-10">
                     {/* Main Footer Content */}
@@ -913,9 +853,14 @@ const Home = () => {
                                     <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
                                         <Smartphone className="w-4 h-4 text-blue-500" />
                                     </div>
-                                    <a href="tel:+918459880189" className="text-muted-foreground hover:text-blue-500 transition-colors text-sm">
-                                        +91 8459880189
-                                    </a>
+                                    <div className="flex flex-col">
+                                        <a href="tel:+917028845548" className="text-muted-foreground hover:text-blue-500 transition-colors text-sm">
+                                            +91 7028845548
+                                        </a>
+                                        <a href="tel:+918459880189" className="text-muted-foreground hover:text-blue-500 transition-colors text-sm">
+                                            +91 8459880189
+                                        </a>
+                                    </div>
                                 </li>
                                 <li className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
@@ -923,8 +868,8 @@ const Home = () => {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                         </svg>
                                     </div>
-                                    <a href="mailto:support@fuelnfix.com" className="text-muted-foreground hover:text-blue-500 transition-colors text-sm">
-                                        support@fuelnfix.com
+                                    <a href="mailto:fuelnfix1@gmail.com" className="text-muted-foreground hover:text-blue-500 transition-colors text-sm">
+                                        fuelnfix1@gmail.com
                                     </a>
                                 </li>
                             </ul>

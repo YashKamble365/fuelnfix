@@ -35,16 +35,15 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../components/theme-provider';
 import { ModeToggle } from '../components/mode-toggle';
-import MapComponent from '../components/GoogleMaps/MapComponent';
-import { Marker } from '@react-google-maps/api';
+import LeafletMapComponent, { createCarIcon } from '../components/LeafletMapComponent';
 import { auth } from '../firebaseConfig';
 import RequestHelpWizard from '../components/RequestHelpWizard';
-import { io } from 'socket.io-client';
 import LiveChat from '../components/LiveChat';
 import api, { API_BASE_URL } from '../lib/api';
 import Receipt from '../components/Receipt';
 import FeedbackModal from '../components/FeedbackModal';
 import { useToast } from '../components/Toast';
+import { useSocket } from '../context/SocketContext';
 
 // Icon Mapping for Dynamic Services
 const ICON_MAPPING = {
@@ -72,15 +71,7 @@ const COLOR_MAPPING = {
     'Cable Unlock': 'from-slate-500/20 to-slate-600/20 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'
 };
 
-const CAR_SYMBOL = {
-    path: "M17.402,0H5.643C2.526,0,0,3.467,0,6.584v34.804c0,3.116,2.526,5.644,5.643,5.644h11.759c3.116,0,5.644-2.527,5.644-5.644 V6.584C23.044,3.467,20.518,0,17.402,0z M22.057,14.188v11.665l-2.729,0.351v-4.806L22.057,14.188z M20.625,10.773 c-1.016,3.9-2.219,8.51-2.219,8.51H4.638l-2.222-8.51C2.417,10.773,11.3,7.755,20.625,10.773z M3.748,21.713v4.492l-2.73-0.349 V14.502L3.748,21.713z M1.018,37.938V27.579l2.73,0.343v8.196L1.018,37.938z M2.575,40.882l2.218-3.336h13.771l2.219,3.336H2.575z M19.328,35.805v-7.872l2.729-0.355v10.048L19.328,35.805z",
-    fillColor: "#4285F4",
-    fillOpacity: 1,
-    scale: 0.6,
-    strokeColor: "white",
-    strokeWeight: 2,
-    anchor: { x: 12, y: 25 },
-};
+// CAR_SYMBOL is now handled by createCarIcon in LeafletMapComponent
 
 const defaultCenter = {
     lat: 19.0760,
@@ -207,7 +198,7 @@ const Dashboard = () => {
     const [location, setLocation] = useState({ lat: 19.0760, lng: 72.8777 });
 
     const [providerLocation, setProviderLocation] = useState(null);
-    const [socket, setSocket] = useState(null);
+    const { socket, joinRoom, updateSocketUser } = useSocket();
     const navigate = useNavigate();
     const { theme } = useTheme();
 
@@ -270,13 +261,8 @@ const Dashboard = () => {
         fetchAnnouncements();
     }, []);
 
-    // Socket Connection
-    useEffect(() => {
-        const SOCKET_URL = API_BASE_URL;
-        const newSocket = io(SOCKET_URL);
-        setSocket(newSocket);
-        return () => newSocket.close();
-    }, []);
+    // Socket Connection Management handled by SocketContext
+    // Removed local useEffect for io() initialization
 
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
@@ -307,9 +293,7 @@ const Dashboard = () => {
         // Socket setup (only if socket exists)
         if (!socket) return;
 
-        // Join user's personal room (once)
-        socket.emit('join_room', parsedUser._id);
-        console.log('[Socket] Joined user room:', parsedUser._id);
+        updateSocketUser(parsedUser);
 
         // Listeners
         const onRequestAccepted = (data) => {
@@ -317,15 +301,13 @@ const Dashboard = () => {
             setActiveRequest(data);
             toast.success("Your request has been accepted!");
             // Join specific request room for tracking
-            socket.emit('join_room', data._id);
-            console.log('[Socket] Joined request room:', data._id);
+            joinRoom(data._id);
         };
 
         const onStatusChanged = (status) => {
             setActiveRequest(prev => prev ? { ...prev, status } : null);
             if (status === 'Completed') {
                 toast.success("Job Completed! Please pay the provider.");
-                window.location.reload();
             }
         };
 
@@ -336,33 +318,28 @@ const Dashboard = () => {
 
         const onBillReceived = (billData) => {
             console.log("[Dashboard] Bill Received:", billData);
-            console.log("[Dashboard] Bill requestId:", billData.requestId);
-            console.log("[Dashboard] Bill totalAmount:", billData.totalAmount);
             setReceivedBill(billData);
         };
 
         const onRequestCancelled = (data) => {
             console.log("Request Cancelled:", data);
-            toast.warning(`Your request was cancelled/rejected: ${data.reason}`);
+            toast.warning(`Request update: ${data.reason}`);
             setActiveRequest(null);
             setProviderLocation(null);
-            // Optional: reset search state if needed
+            setReceivedBill(null);
         };
 
         const onNewAnnouncement = (announcement) => {
             if (announcement.target === 'all' || announcement.target === 'users') {
                 setAnnouncements(prev => [announcement, ...prev]);
                 setUnreadAnnouncements(prev => prev + 1);
-                // Optional: show a toast or browser notification
             }
         };
 
         const onOtpVerified = (data) => {
             console.log("OTP Verified:", data);
             toast.success(data.message || "OTP Verified! Work started.");
-            if (activeRequest) {
-                setActiveRequest(prev => ({ ...prev, otpVerified: true, status: 'In Progress' }));
-            }
+            setActiveRequest(prev => prev ? ({ ...prev, otpVerified: true, status: 'In Progress' }) : null);
         };
 
         socket.on('request_accepted', onRequestAccepted);
@@ -381,7 +358,7 @@ const Dashboard = () => {
             socket.off('bill_received', onBillReceived);
             socket.off('new_announcement', onNewAnnouncement);
             socket.off('otp_verified', onOtpVerified);
-            console.log('[Socket] Cleaned up listeners');
+            console.log('[Dashboard Socket] Cleaned up listeners');
         };
     }, [navigate, socket]);
 
@@ -423,13 +400,43 @@ const Dashboard = () => {
             });
         }
     }, [activeRequest, receivedBill]);
+
     useEffect(() => {
         if (activeRequest?._id && socket && joinedRequestRoom.current !== activeRequest._id) {
-            socket.emit('join_room', activeRequest._id);
+            joinRoom(activeRequest._id);
             joinedRequestRoom.current = activeRequest._id;
-            console.log('[Socket] Joined request room (initial load):', activeRequest._id);
+            console.log('[Dashboard Socket] Joined request room (initial load):', activeRequest._id);
         }
-    }, [activeRequest?._id, socket]);
+    }, [activeRequest?._id, socket, joinRoom]);
+
+    // ROBUST FALLBACK: Periodic Polling for Active Request Status
+    useEffect(() => {
+        if (!user?._id) return;
+
+        const pollActiveRequest = async () => {
+            try {
+                const res = await api.get(`/api/request/user/active/${user._id}`);
+                if (res.data) {
+                    setActiveRequest(prev => {
+                        // Only update if status or OTP changed to avoid unnecessary re-renders
+                        if (!prev || prev.status !== res.data.status || prev.serviceOtp !== res.data.serviceOtp || prev.otpVerified !== res.data.otpVerified) {
+                            console.log("[Polling] Syncing active request state");
+                            return res.data;
+                        }
+                        return prev;
+                    });
+                } else if (activeRequest) {
+                    console.log("[Polling] Active request no longer found, clearing.");
+                    setActiveRequest(null);
+                }
+            } catch (err) {
+                console.error("[Polling] Error syncing request status:", err);
+            }
+        };
+
+        const interval = setInterval(pollActiveRequest, 30000); // 30s polling
+        return () => clearInterval(interval);
+    }, [user?._id, activeRequest]);
 
 
     const getGreeting = () => {
@@ -527,7 +534,11 @@ const Dashboard = () => {
         if (!window.confirm("Are you sure you want to cancel this request?")) return;
 
         try {
-            await api.post('/api/request/cancel', { requestId: activeRequest._id, reason: 'User cancelled via Dashboard' });
+            await api.post('/api/request/cancel', { 
+                requestId: activeRequest._id, 
+                reason: 'User cancelled via Dashboard',
+                cancelledBy: 'user'
+            });
             setActiveRequest(null);
             if (user?._id) fetchActiveRequest(user._id);
             toast.success("Request Cancelled");
@@ -582,6 +593,17 @@ const Dashboard = () => {
                 if (result.error) {
                     console.log("User closed payment popup or error occurred", result.error);
                     setPaymentProcessing(false);
+                    
+                    // Notify backend of failure (optional but good for tracking)
+                    try {
+                        await api.post('/api/request/confirm-payment', {
+                            requestId: receivedBill.requestId || activeRequest?._id,
+                            paymentId: 'CANCELED_BY_USER',
+                            status: 'failed'
+                        });
+                    } catch (e) {
+                        console.error("Failed to sync failure status", e);
+                    }
                     return;
                 }
                 if (result.paymentDetails) {
@@ -634,8 +656,17 @@ const Dashboard = () => {
                             setReceivedBill(null);
                             if (user?._id) fetchActiveRequest(user._id);
                         } else {
-                            console.log("[Payment] Payment status not SUCCESS:", verifyRes.data[0]?.payment_status);
-                            toast.error("Payment Failed or Pending. Please try again.");
+                            const failStatus = verifyRes.data[0]?.payment_status || "FAILED";
+                            console.log("[Payment] Payment status not SUCCESS:", failStatus);
+                            
+                            // Notify backend of failure
+                            api.post('/api/request/confirm-payment', {
+                                requestId: receivedBill.requestId || activeRequest?._id,
+                                paymentId: verifyRes.data[0]?.cf_payment_id || 'N/A',
+                                status: 'failed'
+                            }).catch(err => console.error("Error confirming failure", err));
+
+                            toast.error(`Payment ${failStatus}. Please try again.`);
                         }
                     } catch (verifyError) {
                         console.error("[Payment] Verification error:", verifyError);
@@ -800,17 +831,18 @@ const Dashboard = () => {
                                         className="cursor-pointer mb-8 p-8 bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20 rounded-[2.5rem] flex items-center justify-between relative overflow-hidden group hover:scale-[1.01] transition-transform"
                                     >
                                         <div className="absolute top-0 right-0 p-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-                                        {/* Cancel Button for Pending Requests */}
+                                        {/* Cancel Button - ONLY for Pending Requests */}
                                         {activeRequest.status === 'Pending' && (
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleCancelRequest();
                                                 }}
-                                                className="absolute top-6 right-6 p-2 bg-white/50 dark:bg-black/20 hover:bg-destructive hover:text-white rounded-full transition-all z-20"
+                                                className="absolute top-4 right-4 z-20 p-2 bg-destructive/10 hover:bg-destructive text-destructive hover:text-white rounded-full transition-all flex items-center gap-1 group/cancel"
                                                 title="Cancel Request"
                                             >
-                                                <X className="w-5 h-5" />
+                                                <X className="w-4 h-4" />
+                                                <span className="text-[10px] font-bold max-w-0 overflow-hidden group-hover/cancel:max-w-[100px] transition-all duration-300">Cancel</span>
                                             </button>
                                         )}
                                         <div className="relative z-10 w-full">
@@ -1077,36 +1109,27 @@ const Dashboard = () => {
                                         </div>
                                     )}
 
-                                    <MapComponent
+                                    <LeafletMapComponent
                                         center={isChaseMode && providerLocation ? providerLocation : (mapCenter || location)}
                                         zoom={isChaseMode ? 19 : mapZoom}
-                                        heading={isChaseMode && providerLocation?.heading ? providerLocation.heading : 0}
-                                        tilt={isChaseMode ? 45 : 0}
                                         showControls={true}
                                         forceDark={theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)}
-                                        customDarkStyle={UBER_STYLE}
-                                        options={{
-                                            disableDefaultUI: true,
-                                        }}
-                                        mapContainerStyle={{ height: "100%", width: "100%" }} // Explicitly set height
+                                        mapContainerStyle={{ height: "100%", width: "100%" }}
                                         onIdle={(center) => {
                                             if (!isChaseMode && center) {
                                                 setMapCenter(center);
                                             }
                                         }}
-                                    >
-                                        <Marker position={location} icon={{ url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png" }} />
-                                        {activeRequest && providerLocation && (
-                                            <Marker
-                                                position={providerLocation}
-                                                icon={{
-                                                    ...CAR_SYMBOL,
-                                                    rotation: providerLocation?.heading || 0
-                                                }}
-                                                title="Your Provider"
-                                            />
-                                        )}
-                                    </MapComponent>
+                                        markers={[
+                                            { position: location, icon: { url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' }, key: 'user' },
+                                            ...(activeRequest && providerLocation ? [{
+                                                position: providerLocation,
+                                                icon: { path: true, rotation: providerLocation?.heading || 0 },
+                                                title: 'Your Provider',
+                                                key: 'provider'
+                                            }] : [])
+                                        ]}
+                                    />
                                 </div>
 
                                 {/* Bill Received Card */}
@@ -1282,7 +1305,7 @@ const Dashboard = () => {
                                                                 },
                                                                 paymentId: req.paymentId || 'N/A',
                                                                 customerName: user.name,
-                                                                providerId: req.provider?._id,
+                                                                providerId: req.provider?._id || req.provider,
                                                                 providerName: req.provider?.name || 'Service Provider',
                                                                 isHistory: true
                                                             });

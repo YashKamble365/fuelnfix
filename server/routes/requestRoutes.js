@@ -14,7 +14,7 @@ router.get('/user/active/:userId', requestController.getUserActiveRequest);
 router.get('/user/history/:userId', requestController.getUserRequestHistory);
 router.put('/status', requestController.updateStatus);
 router.put('/complete', requestController.completeRequest);
-router.put('/cancel', requestController.cancelRequest); // New Endpoint
+router.post('/cancel', requestController.cancelRequest); // New Endpoint
 router.post('/send-bill', requestController.sendBill);
 router.post('/confirm-payment', requestController.confirmPayment);
 router.post('/verify-otp', requestController.verifyServiceOtp);

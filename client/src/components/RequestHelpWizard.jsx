@@ -1,44 +1,94 @@
 // Redesigned 5-Step Wizard
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GoogleMap, Marker, InfoWindow, useJsApiLoader, OverlayView } from '@react-google-maps/api';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 import { Camera, MapPin, ChevronLeft, ChevronRight, Loader2, Star, CheckCircle, Upload, Car, Search, Wrench, X, Plus, Minus, Crosshair, Map, Moon, Sun, Satellite } from 'lucide-react';
 import api from '../lib/api';
 import { auth } from '../firebaseConfig';
 
+// Fix default marker icon
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
-// Uber-style dark map theme
-const UBER_STYLE = [
-    { elementType: "geometry", stylers: [{ color: "#212121" }] },
-    { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-    { elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
-    { elementType: "labels.text.stroke", stylers: [{ color: "#212121" }] },
-    { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#757575" }] },
-    { featureType: "administrative.country", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
-    { featureType: "administrative.land_parcel", stylers: [{ visibility: "off" }] },
-    { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#bdbdbd" }] },
-    { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
-    { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#181818" }] },
-    { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
-    { featureType: "poi.park", elementType: "labels.text.stroke", stylers: [{ color: "#1b1b1b" }] },
-    { featureType: "road", elementType: "geometry.fill", stylers: [{ color: "#2c2c2c" }] },
-    { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#8a8a8a" }] },
-    { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#373737" }] },
-    { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#3c3c3c" }] },
-    { featureType: "road.highway.controlled_access", elementType: "geometry", stylers: [{ color: "#4e4e4e" }] },
-    { featureType: "road.local", elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
-    { featureType: "transit", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
-    { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] },
-    { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3d3d3d" }] }
-];
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconUrl: markerIcon,
+    iconRetinaUrl: markerIcon2x,
+    shadowUrl: markerShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
+// Tile layer URLs
+const TILE_URLS = {
+    dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+};
+
+// Indigo circle icon for user location
+const userLocationIcon = L.divIcon({
+    className: 'leaflet-user-location',
+    html: `<div style="width:24px;height:24px;background:#4F46E5;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(79,70,229,0.4);"></div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+});
+
+// Map Center Updater component
+const MapCenterUpdater = ({ center, zoom }) => {
+    const map = useMap();
+    useEffect(() => {
+        if (center) map.setView([center.lat, center.lng], zoom, { animate: true });
+    }, [center?.lat, center?.lng, zoom, map]);
+    return null;
+};
+
+// Extracted Memoized Marker to prevent Leaflet unmount crashes
+const ProviderMarker = ({ p, selectedProvider, setSelectedProvider, category }) => {
+    const provLat = p.provider.location.coordinates[1];
+    const provLng = p.provider.location.coordinates[0];
+    const isSelected = selectedProvider?.provider.id === p.provider.id;
+    const isBusy = p.provider.isBusy;
+
+    const providerIcon = useMemo(() => {
+        return L.divIcon({
+            className: 'leaflet-provider-card',
+            html: `<div style="cursor:pointer;transform:translateX(-50%);text-align:center;min-width:100px;">
+                <div style="background:white;padding:6px 10px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.15);border:2px solid ${isSelected ? (isBusy ? '#ef4444' : '#3b82f6') : (isBusy ? 'rgba(239, 68, 68, 0.5)' : 'rgba(255,255,255,0.5)')};position:relative;">
+                    <div style="position:absolute;top:-4px;right:-4px;width:12px;height:12px;">
+                        <span style="display:block;width:12px;height:12px;background:${isBusy ? '#ef4444' : '#22c55e'};border-radius:50%;"></span>
+                    </div>
+                    <p style="font-weight:700;font-size:11px;color:#18181b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px;margin:0;">${p.provider.shopName || p.provider.name}</p>
+                    <p style="font-weight:900;font-size:13px;color:${isBusy ? '#ef4444' : '#3b82f6'};margin:2px 0 0;">
+                        ${isBusy ? 'BUSY' : `₹${Math.round(p.totalEstimate)}${category === 'Fuel Delivery' ? '<span style="font-size:9px;color:#f97316;margin-left:2px;">+Fuel</span>' : ''}`}
+                    </p>
+                    <p style="font-size:9px;color:#71717a;margin:0;">${Number(p.distance).toFixed(1)} km</p>
+                </div>
+                <div style="width:0;height:0;margin:0 auto;border-left:8px solid transparent;border-right:8px solid transparent;border-top:10px solid white;"></div>
+                <div style="width:16px;height:16px;background:${isBusy ? '#ef4444' : '#3b82f6'};border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);margin:-4px auto 0;"></div>
+            </div>`,
+            iconSize: [120, 80],
+            iconAnchor: [60, 80],
+        });
+    }, [isSelected, isBusy, p.provider.shopName, p.provider.name, p.totalEstimate, p.distance, category]);
+
+    return (
+        <Marker
+            position={[provLat, provLng]}
+            icon={providerIcon}
+            eventHandlers={{
+                click: () => setSelectedProvider(p)
+            }}
+        />
+    );
+};
 
 const RequestHelpWizard = ({ category, services, availableServices, userLocation, onCancel, onSuccess, onMapMode }) => {
-
-    const { isLoaded } = useJsApiLoader({
-        id: 'google-map-script',
-        googleMapsApiKey: "AIzaSyDta1Z02aqGopcvuZTLPH1-AJRehMRDTAM",
-        libraries: ['geometry']
-    });
 
     const [step, setStep] = useState(services?.length > 0 ? 2 : 1);
 
@@ -61,7 +111,7 @@ const RequestHelpWizard = ({ category, services, availableServices, userLocation
     const [selectedProvider, setSelectedProvider] = useState(null);
     const [loading, setLoading] = useState(false);
     const [mapZoom, setMapZoom] = useState(15);
-    const [mapType, setMapType] = useState('dark'); // 'dark' | 'light' | 'satellite'
+    const [mapType, setMapType] = useState('light'); // 'dark' | 'light' | 'satellite'
     const mapRef = useRef(null);
 
     const fileInputRef = useRef(null);
@@ -202,34 +252,31 @@ const RequestHelpWizard = ({ category, services, availableServices, userLocation
             {(step === 4 || step === 5) ? (
                 <div className="absolute inset-0 bg-background">
                     {/* Step 4 - Location Confirmation Fullscreen */}
-                    {step === 4 && isLoaded && window.google && (
+                    {step === 4 && (
                         <>
-                            <GoogleMap
-                                mapContainerStyle={fullMapStyle}
-                                center={confirmedLocation}
+                            <MapContainer
+                                center={[confirmedLocation.lat, confirmedLocation.lng]}
                                 zoom={mapZoom}
-                                onLoad={(map) => { mapRef.current = map; }}
-                                mapTypeId={mapType === 'satellite' ? 'hybrid' : 'roadmap'}
-                                options={{
-                                    disableDefaultUI: true,
-                                    zoomControl: false,
-                                    styles: mapType === 'dark' ? UBER_STYLE : mapType === 'light' ? [] : null,
-                                }}
+                                className="w-full h-full z-0"
+                                style={{ width: '100%', height: '100%' }}
+                                zoomControl={false}
+                                attributionControl={false}
+                                ref={mapRef}
                             >
+                                <TileLayer url={TILE_URLS[mapType] || TILE_URLS.dark} />
+                                <MapCenterUpdater center={confirmedLocation} zoom={mapZoom} />
                                 <Marker
-                                    draggable
-                                    position={confirmedLocation}
-                                    onDragEnd={(e) => setConfirmedLocation({ lat: e.latLng.lat(), lng: e.latLng.lng() })}
-                                    icon={{
-                                        path: window.google.maps.SymbolPath.CIRCLE,
-                                        scale: 12,
-                                        fillColor: "#4F46E5",
-                                        fillOpacity: 1,
-                                        strokeColor: "#ffffff",
-                                        strokeWeight: 3,
+                                    draggable={true}
+                                    position={[confirmedLocation.lat, confirmedLocation.lng]}
+                                    icon={userLocationIcon}
+                                    eventHandlers={{
+                                        dragend: (e) => {
+                                            const latlng = e.target.getLatLng();
+                                            setConfirmedLocation({ lat: latlng.lat, lng: latlng.lng });
+                                        }
                                     }}
                                 />
-                            </GoogleMap>
+                            </MapContainer>
 
                             {/* Top Bar */}
                             <div className="absolute top-0 left-0 right-0 p-8 pt-12 flex justify-between items-start bg-gradient-to-b from-black/60 via-black/30 to-transparent pointer-events-none">
@@ -322,92 +369,37 @@ const RequestHelpWizard = ({ category, services, availableServices, userLocation
                     )}
 
                     {/* Step 5 - Providers Found */}
-                    {step === 5 && isLoaded && window.google && (
-                        <GoogleMap
-                            mapContainerStyle={fullMapStyle}
-                            center={confirmedLocation}
-                            zoom={mapZoom}
-                            onLoad={(map) => { mapRef.current = map; }}
-                            mapTypeId={mapType === 'satellite' ? 'hybrid' : 'roadmap'}
-                            options={{
-                                disableDefaultUI: true,
-                                zoomControl: false,
-                                styles: mapType === 'dark' ? UBER_STYLE : mapType === 'light' ? [] : null,
-                            }}
-                        >
-                            {/* User Marker */}
-                            <Marker
-                                position={confirmedLocation}
-                                icon={{
-                                    path: window.google.maps.SymbolPath.CIRCLE,
-                                    scale: 10,
-                                    fillColor: "#4F46E5", // Primary Color
-                                    fillOpacity: 1,
-                                    strokeColor: "#ffffff",
-                                    strokeWeight: 3,
-                                }}
-                            />
+                    {step === 5 && (
+                        <>
+                            <MapContainer
+                                center={[confirmedLocation.lat, confirmedLocation.lng]}
+                                zoom={mapZoom}
+                                className="w-full h-full z-0"
+                                style={{ width: '100%', height: '100%' }}
+                                zoomControl={false}
+                                attributionControl={false}
+                            >
+                                <TileLayer url={TILE_URLS[mapType] || TILE_URLS.dark} />
+                                <MapCenterUpdater center={confirmedLocation} zoom={mapZoom} />
 
-                            {/* Provider Markers with Labels */}
-                            {providers.map((p, index) => (
-                                <OverlayView
-                                    key={p.provider.id}
-                                    position={{ lat: p.provider.location.coordinates[1], lng: p.provider.location.coordinates[0] }}
-                                    mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-                                >
-                                    <div
-                                        onClick={() => setSelectedProvider(p)}
-                                        className={`cursor-pointer transform -translate-x-1/2 -translate-y-full transition-all hover:scale-110 ${selectedProvider?.provider.id === p.provider.id ? 'scale-110 z-50' : ''}`}
-                                    >
-                                        {/* Blinking Label Card */}
-                                        <motion.div
-                                            initial={{ scale: 0, opacity: 0 }}
-                                            animate={{ scale: 1, opacity: 1 }}
-                                            transition={{ delay: index * 0.1, type: 'spring' }}
-                                            className="relative"
-                                        >
-                                            <div className={`bg-white dark:bg-zinc-900 px-3 py-2 rounded-2xl shadow-xl border-2 ${selectedProvider?.provider.id === p.provider.id ? 'border-blue-500 shadow-blue-500/30' : 'border-white/50 dark:border-zinc-700'} min-w-[100px] text-center`}>
-                                                {/* Pulse Animation */}
-                                                <div className="absolute -top-1 -right-1 w-3 h-3">
-                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
-                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                                                </div>
+                                {/* User Marker */}
+                                <Marker
+                                    position={[confirmedLocation.lat, confirmedLocation.lng]}
+                                    icon={userLocationIcon}
+                                />
 
-                                                {/* Provider Name */}
-                                                <p className="font-bold text-xs text-zinc-900 dark:text-white truncate max-w-[90px]">
-                                                    {p.provider.shopName || p.provider.name}
-                                                </p>
-
-                                                {/* Price & Rating Row */}
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <p className="font-black text-sm text-blue-500">
-                                                        ₹{Math.round(p.totalEstimate)}{category === 'Fuel Delivery' ? <span className="text-[10px] text-orange-500 ml-0.5">+Fuel</span> : ''}
-                                                    </p>
-                                                    {p.provider.rating > 0 && (
-                                                        <div className="flex items-center text-[10px] font-bold text-yellow-500 bg-yellow-500/10 px-1.5 py-0.5 rounded-lg">
-                                                            <Star className="w-2.5 h-2.5 fill-current mr-0.5" /> {p.provider.rating}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Distance */}
-                                                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">
-                                                    {Number(p.distance).toFixed(1)} km
-                                                </p>
-                                            </div>
-
-                                            {/* Arrow pointing down */}
-                                            <div className="w-0 h-0 mx-auto border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[10px] border-t-white dark:border-t-zinc-900"></div>
-
-                                            {/* Marker Dot */}
-                                            <div className="absolute left-1/2 -translate-x-1/2 -bottom-3">
-                                                <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg"></div>
-                                            </div>
-                                        </motion.div>
-                                    </div>
-                                </OverlayView>
-                            ))}
-                        </GoogleMap>
+                                {/* Provider Markers */}
+                                {providers.map((p) => (
+                                    <ProviderMarker
+                                        key={p.provider.id}
+                                        p={p}
+                                        selectedProvider={selectedProvider}
+                                        setSelectedProvider={setSelectedProvider}
+                                        category={category}
+                                    />
+                                ))}
+                            </MapContainer>
+                        </>
                     )}
 
                     {/* Top Bar - ONLY for Step 5 */}
@@ -457,9 +449,10 @@ const RequestHelpWizard = ({ category, services, availableServices, userLocation
                         <button
                             onClick={() => {
                                 if (mapRef.current) {
-                                    mapRef.current.panTo(confirmedLocation);
-                                    setMapZoom(15);
+                                    const map = mapRef.current;
+                                    map.setView([confirmedLocation.lat, confirmedLocation.lng], 16, { animate: true });
                                 }
+                                setMapZoom(16);
                             }}
                             className="p-3 bg-card/90 backdrop-blur-md rounded-xl shadow-lg border border-border/50 text-foreground hover:bg-blue-600 hover:text-white transition-all active:scale-95"
                             title="Recenter Map"
@@ -585,14 +578,23 @@ const RequestHelpWizard = ({ category, services, availableServices, userLocation
 
                                     <button
                                         onClick={handleBookProvider}
-                                        disabled={loading}
-                                        className="w-full py-5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-black rounded-3xl text-xl shadow-xl shadow-blue-500/25 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 relative overflow-hidden group"
+                                        disabled={loading || selectedProvider.provider.isBusy}
+                                        className={`w-full py-5 text-white font-black rounded-3xl text-xl shadow-xl transition-all flex items-center justify-center gap-3 relative overflow-hidden group ${selectedProvider.provider.isBusy ? 'bg-zinc-500 cursor-not-allowed opacity-70' : 'bg-gradient-to-r from-blue-500 to-indigo-500 shadow-blue-500/25 hover:scale-[1.02] active:scale-95'}`}
                                     >
-                                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 rounded-3xl"></div>
+                                        {!selectedProvider.provider.isBusy && <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 rounded-3xl"></div>}
                                         {loading ? <Loader2 className="animate-spin w-6 h-6" /> : (
-                                            <>Confirm Booking <ChevronRight className="w-6 h-6" /></>
+                                            selectedProvider.provider.isBusy ? (
+                                                <>Provider is Busy <X className="w-6 h-6" /></>
+                                            ) : (
+                                                <>Confirm Booking <ChevronRight className="w-6 h-6" /></>
+                                            )
                                         )}
                                     </button>
+                                    {selectedProvider.provider.isBusy && (
+                                        <p className="text-center text-red-500 font-bold text-sm mt-2 animate-pulse">
+                                            This provider is currently fulfilling another job. Please try another provider.
+                                        </p>
+                                    )}
                                 </div>
                             </motion.div>
                         )}

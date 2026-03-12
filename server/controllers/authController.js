@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 
 exports.register = async (req, res) => {
     try {
-        const { name, email, password, role, vehicleDetails, idToken, shopName, providerCategory, services, address, location, photoUrl } = req.body;
+        const { name, email, phone, password, role, vehicleDetails, idToken, shopName, providerCategory, services, address, location, photoUrl } = req.body;
 
         let userEmail = email;
         let userName = name;
@@ -26,8 +26,21 @@ exports.register = async (req, res) => {
         }
 
         // Check if user already exists
-        let user = await User.findOne({ email: userEmail });
-        if (user) return res.status(400).json({ message: 'User already exists' });
+        let user = await User.findOne({ 
+            $or: [
+                { email: userEmail },
+                { phone: phone }
+            ]
+        });
+        
+        if (user) {
+            if (user.email === userEmail) {
+                return res.status(400).json({ message: 'User with this email already exists' });
+            }
+            if (user.phone === phone && phone) {
+                return res.status(400).json({ message: 'User with this phone number already exists' });
+            }
+        }
 
         // Hash password if standard registration
         let hashedPassword = undefined; // Undefined so Mongoose doesn't set an empty string if Google Auth
@@ -40,6 +53,7 @@ exports.register = async (req, res) => {
         user = new User({
             name: userName, // Use name from form or Google
             email: userEmail,
+            phone,
             photoUrl: userPhotoUrl,
             password: hashedPassword,
             role,
@@ -227,8 +241,9 @@ exports.toggleServiceStatus = async (req, res) => {
         const serviceIndex = user.services.findIndex(s => s.name === serviceName);
         if (serviceIndex > -1) {
             user.services[serviceIndex].active = !user.services[serviceIndex].active;
+            user.markModified('services');
             await user.save();
-            res.json({ message: 'Service status updated', services: user.services });
+            res.json({ message: 'Service status updated', user, services: user.services });
         } else {
             res.status(404).json({ message: 'Service not found' });
         }
@@ -249,8 +264,9 @@ exports.addService = async (req, res) => {
         }
 
         user.services.push({ name: serviceName, active: true });
+        user.markModified('services');
         await user.save();
-        res.json({ message: 'Service added', services: user.services });
+        res.json({ message: 'Service added', user, services: user.services });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -264,7 +280,8 @@ exports.deleteService = async (req, res) => {
             { $pull: { services: { name: serviceName } } },
             { new: true }
         );
-        res.json({ message: 'Service removed', services: user.services });
+        // User.findByIdAndUpdate doesn't need markModified if using $pull
+        res.json({ message: 'Service removed', user, services: user.services });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -278,8 +295,9 @@ exports.updateServiceName = async (req, res) => {
             { $set: { "services.$.name": newName } },
             { new: true }
         );
+        // FindOneAndUpdate doesn't need markModified if using $set
         if (!user) return res.status(404).json({ message: 'User or Service not found' });
-        res.json({ message: 'Service updated', services: user.services });
+        res.json({ message: 'Service updated', user, services: user.services });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

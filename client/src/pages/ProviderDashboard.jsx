@@ -5,14 +5,13 @@ import {
     LayoutDashboard, List, Wrench, Settings, LogOut, Menu, Bell,
     MapPin, CheckCircle, XCircle, Clock, Star, Activity, DollarSign,
     Power, Navigation, ChevronRight, User, Plus, Trash2, Edit2, Save, X, IndianRupee, ChevronDown, Check,
-    Phone, Shield, ImageIcon, Car, PlayCircle, History, Fuel, Megaphone, FileText
+    Phone, Shield, ImageIcon, Car, PlayCircle, History, Fuel, Megaphone, FileText, Zap
 } from 'lucide-react';
-import { io } from 'socket.io-client';
+import { auth } from '../firebaseConfig';
+import { useSocket } from '../context/SocketContext';
 import { load } from '@cashfreepayments/cashfree-js';
 import api, { API_BASE_URL } from '../lib/api';
-import MapComponent from '../components/GoogleMaps/MapComponent';
-import { auth } from '../firebaseConfig';
-import { Marker } from '@react-google-maps/api';
+import LeafletMapComponent from '../components/LeafletMapComponent';
 import LiveChat from '../components/LiveChat';
 import PhoneInput from '../components/PhoneInput';
 import { ModeToggle } from '../components/mode-toggle';
@@ -73,7 +72,7 @@ const ProviderDashboard = () => {
 
     // Real-Time Request State
     const [incomingRequest, setIncomingRequest] = useState(null);
-    const [socket, setSocket] = useState(null);
+    const { socket, joinRoom, updateSocketUser } = useSocket();
 
     // Job Completion State
     const [showCompleteModal, setShowCompleteModal] = useState(false);
@@ -178,22 +177,12 @@ const ProviderDashboard = () => {
         }
     };
 
-    // Socket Connection
-    useEffect(() => {
-        const SOCKET_URL = API_BASE_URL;
-        const newSocket = io(SOCKET_URL);
-        setSocket(newSocket);
-        return () => newSocket.close();
-    }, []);
+    // Socket Connection Management handled by SocketContext
 
     useEffect(() => {
-        if (socket && user?._id && !joinedRooms.current.has(user._id)) {
-            socket.emit('join_room', user._id);
-            joinedRooms.current.add(user._id);
-            console.log('[Provider Socket] Joined user room:', user._id);
-        }
-
-        if (!socket) return;
+        if (!socket || !user?._id) return;
+        
+        updateSocketUser(user);
 
         const onNewRequest = (request) => {
             console.log("New Request Received:", request);
@@ -204,10 +193,14 @@ const ProviderDashboard = () => {
 
         // Listen for payment confirmation to trigger feedback
         const onPaymentConfirmed = (data) => {
-            console.log("[Provider] Payment Confirmed:", data);
-            // data should contain: requestId, customerId, customerName
+            console.log("[Provider] Payment Update Received:", data);
             if (data) {
-                // EV Support Fallback: If no serviceTypes, check category
+                if (data.paymentStatus !== 'success') {
+                    toast.warning("Payment failed. Please coordinate with the customer.");
+                    return; // Don't clear job or show feedback on failure
+                }
+
+                // SUCCESS PATH
                 let types = data.serviceTypes || activeJob?.serviceTypes;
                 if (!types || types.length === 0) {
                     if (activeJob?.category === 'EV Support') types = ['EV Support'];
@@ -226,7 +219,6 @@ const ProviderDashboard = () => {
                 });
                 setShowFeedback(true);
 
-                // Clear active job ONLY after modal is definitely open
                 setTimeout(() => {
                     setActiveJob(null);
                     fetchProviderJobs(user?._id);
@@ -243,22 +235,65 @@ const ProviderDashboard = () => {
         };
         socket.on('new_announcement', onNewAnnouncement);
 
+        const onRequestCancelled = (data) => {
+            console.log("[Provider] Request Cancelled:", data);
+            toast.warning(`Request was cancelled: ${data.reason}`);
+            
+            setIncomingRequest(prev => (prev && prev._id === data.requestId) ? null : prev);
+            setActiveJob(prev => (prev && prev._id === data.requestId) ? null : prev);
+            
+            fetchDashboardData();
+        };
+        socket.on('request_cancelled', onRequestCancelled);
+
         return () => {
             socket.off('new_request', onNewRequest);
             socket.off('payment_confirmed', onPaymentConfirmed);
             socket.off('new_announcement', onNewAnnouncement);
+            socket.off('request_cancelled', onRequestCancelled);
         };
     }, [socket, user?._id, activeJob]);
 
     // Ensure provider joins the active job room (Fix for Chat on Refresh) - DEDUPLICATED
     useEffect(() => {
         const roomId = activeJob?.id || activeJob?._id;
-        if (socket && roomId && !joinedRooms.current.has(roomId)) {
-            console.log("[Provider Socket] Joining Active Job Room:", roomId);
-            socket.emit('join_room', roomId);
-            joinedRooms.current.add(roomId);
+        if (socket && roomId) {
+            joinRoom(roomId);
         }
-    }, [socket, activeJob?.id, activeJob?._id]);
+    }, [socket, activeJob?.id, activeJob?._id, joinRoom]);
+
+    // ROBUST FALLBACK: Periodic Polling for Requests
+    useEffect(() => {
+        if (!user?._id) return;
+
+        const pollRequests = async () => {
+            try {
+                // Keep requests and active job in sync
+                const reqRes = await api.get(`/api/request/provider/active/${user._id}`);
+                const historyRes = await api.get(`/api/request/provider/${user._id}`);
+
+                if (reqRes.data) {
+                  setActiveJob(prev => {
+                      if (!prev || prev.status !== reqRes.data.status || prev.serviceOtp !== reqRes.data.serviceOtp) {
+                          console.log("[Provider Polling] Syncing active job state");
+                          return reqRes.data;
+                      }
+                      return prev;
+                  });
+                } else if (activeJob) {
+                   console.log("[Provider Polling] Active job no longer found, clearing.");
+                   setActiveJob(null);
+                }
+                
+                setRequests(historyRes.data);
+            } catch (err) {
+                console.error("[Provider Polling] Error syncing data:", err);
+            }
+        };
+
+        const interval = setInterval(pollRequests, 30000); // 30s polling
+        return () => clearInterval(interval);
+    }, [user?._id, activeJob?._id]);
 
     // Provider Location Tracking (Active Job OR Online)
     useEffect(() => {
@@ -739,8 +774,14 @@ const ProviderDashboard = () => {
     const toggleService = async (serviceName) => {
         try {
             const res = await api.put('/api/auth/provider/service', { userId: user._id, serviceName });
-            setUser(prev => ({ ...prev, services: res.data.user.services }));
-            toast.success("Service Added");
+            if (res.data.user) {
+                setUser(res.data.user);
+                localStorage.setItem('user', JSON.stringify(res.data.user));
+            }
+            if (res.data.services) {
+                setMyServices(res.data.services);
+            }
+            toast.success("Service status updated");
         } catch (err) {
             console.error("Service Toggle Error:", err);
             toast.error("Failed to update service");
@@ -752,21 +793,35 @@ const ProviderDashboard = () => {
         if (!newService.trim()) return;
         try {
             const res = await api.post('/api/auth/provider/service', { userId: user._id, serviceName: newService });
-            setUser(prev => ({ ...prev, services: res.data.user.services }));
+            if (res.data.user) {
+                setUser(res.data.user);
+                localStorage.setItem('user', JSON.stringify(res.data.user));
+            }
+            if (res.data.services) {
+                setMyServices(res.data.services);
+            }
             setNewService('');
+            toast.success("Service Added");
         } catch (err) {
             toast.error(err.response?.data?.message || "Failed to add service");
         }
     };
 
-    const handleRemoveService = async (serviceName) => {
+    const deleteService = async (serviceName) => {
         if (!window.confirm(`Stop providing ${serviceName}?`)) return;
         try {
             const res = await api.delete('/api/auth/provider/service', { data: { userId: user._id, serviceName } });
-            setUser(prev => ({ ...prev, services: res.data.user.services }));
-            toast.success("Service Removed");
+            if (res.data.user) {
+                setUser(res.data.user);
+                localStorage.setItem('user', JSON.stringify(res.data.user));
+            }
+            if (res.data.services) {
+                setMyServices(res.data.services);
+            }
+            toast.success("Service removed successfully");
         } catch (err) {
-            toast.error("Failed to delete service");
+            console.error("Delete Service Error:", err);
+            toast.error("Failed to remove service");
         }
     };
 
@@ -830,8 +885,8 @@ const ProviderDashboard = () => {
             setActiveJob(null);
             setMaterialCost('');
             toast.success("Job Completed Successfully!");
-            // Refresh stats
-            window.location.reload();
+            // Refresh dashboard data instead of full page reload
+            fetchDashboardData();
         } catch (err) {
             console.error("Failed to complete job", err);
         }
@@ -840,9 +895,10 @@ const ProviderDashboard = () => {
     const handleRejectRequest = async () => {
         if (!incomingRequest) return;
         try {
-            await api.put('/api/request/cancel', {
+            await api.post('/api/request/cancel', {
                 requestId: incomingRequest._id,
-                reason: 'Provider Cancelled'
+                reason: 'Provider Cancelled',
+                cancelledBy: 'provider'
             });
             setRequests(prev => prev.map(r => r._id === incomingRequest._id ? { ...r, status: 'Cancelled' } : r));
             setIncomingRequest(null);
@@ -858,9 +914,10 @@ const ProviderDashboard = () => {
         if (!reason && reason !== "") return; // User pressed cancel on prompt
 
         try {
-            const res = await api.put('/api/request/cancel', {
+            const res = await api.post('/api/request/cancel', {
                 requestId: activeJob._id || activeJob.id,
-                reason: 'Provider Cancelled'
+                reason: reason || 'Provider Cancelled',
+                cancelledBy: 'provider'
             });
             toast.error("Job Cancelled");
             setActiveJob(null);
@@ -1215,27 +1272,22 @@ const ProviderDashboard = () => {
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                                 {/* Active Map */}
                                 <div className="lg:col-span-3 h-[400px] rounded-[2.5rem] overflow-hidden border border-border relative group shadow-2xl">
-                                    <MapComponent
+                                    <LeafletMapComponent
                                         center={user?.location?.coordinates ? { lat: user.location.coordinates[1], lng: user.location.coordinates[0] } : undefined}
-                                        heading={isNavigationActive ? simulationData.heading : 0}
-                                        tilt={isNavigationActive ? simulationData.tilt : 0}
-                                        zoom={isNavigationActive ? simulationData.zoom : 13}
-                                    >
-                                        {user?.location?.coordinates && (
-                                            <Marker
-                                                position={{ lat: user.location.coordinates[1], lng: user.location.coordinates[0] }}
-                                                icon={{ url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png" }}
-                                            />
-                                        )}
-                                        {/* Show Request Markers */}
-                                        {requests.filter(r => r.status === 'Pending').map(r => (
-                                            <Marker
-                                                key={r.id}
-                                                position={r.location}
-                                                icon={{ url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png" }}
-                                            />
-                                        ))}
-                                    </MapComponent>
+                                        zoom={13}
+                                        markers={[
+                                            ...(user?.location?.coordinates ? [{
+                                                position: { lat: user.location.coordinates[1], lng: user.location.coordinates[0] },
+                                                icon: { url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' },
+                                                key: 'provider-location'
+                                            }] : []),
+                                            ...requests.filter(r => r.status === 'Pending').map(r => ({
+                                                position: r.location,
+                                                icon: { url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png' },
+                                                key: `req-${r.id}`
+                                            }))
+                                        ]}
+                                    />
                                     <div className="absolute top-4 left-4 bg-background/90 backdrop-blur px-4 py-2 rounded-full border border-border text-sm font-bold shadow-lg flex items-center gap-2 relative z-50">
                                         <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                                         Live Status
@@ -1439,13 +1491,13 @@ const ProviderDashboard = () => {
                                                     </div>
                                                     {/* Category Filter */}
                                                     <div className="flex bg-card/50 p-1 rounded-xl border border-border/50 self-start">
-                                                        {['All', 'Mechanic', 'Fuel Delivery'].map(filter => (
+                                                        {['All', 'Mechanic', 'Fuel Delivery', 'EV Support'].map(filter => (
                                                             <button
                                                                 key={filter}
                                                                 onClick={() => setRequestFilter(filter)}
                                                                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${requestFilter === filter ? 'bg-blue-500 text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}
                                                             >
-                                                                {filter === 'Fuel Delivery' ? 'Fuel' : filter}
+                                                                {filter === 'Fuel Delivery' ? 'Fuel' : filter === 'EV Support' ? 'Electric' : filter}
                                                             </button>
                                                         ))}
                                                     </div>
@@ -1542,20 +1594,16 @@ const ProviderDashboard = () => {
                                     <div className="flex-1 overflow-y-auto p-0 scrollbar-hide">
                                         {/* Map Header */}
                                         <div className="h-64 relative w-full">
-                                            <MapComponent center={selectedRequest.location} zoom={15}>
-                                                <Marker
-                                                    position={selectedRequest.location}
-                                                    animation={window.google?.maps?.Animation?.BOUNCE}
-                                                    icon={{
-                                                        path: window.google?.maps?.SymbolPath?.CIRCLE,
-                                                        scale: 10,
-                                                        fillColor: "#EF4444",
-                                                        fillOpacity: 1,
-                                                        strokeColor: "white",
-                                                        strokeWeight: 3,
-                                                    }}
-                                                />
-                                            </MapComponent>
+                                            <LeafletMapComponent
+                                                center={selectedRequest.location}
+                                                zoom={15}
+                                                showControls={false}
+                                                markers={[{
+                                                    position: selectedRequest.location,
+                                                    icon: { fillColor: '#EF4444', scale: 10, strokeColor: 'white', strokeWeight: 3 },
+                                                    key: 'request-location'
+                                                }]}
+                                            />
                                             <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-card to-transparent pointer-events-none"></div>
                                         </div>
 
@@ -1908,7 +1956,10 @@ const ProviderDashboard = () => {
                                                 const distFee = activeJob?.pricing?.distanceFee || 0;
                                                 const matCost = Number(getBillTotal()) || 0;
                                                 const subTotal = baseFee + distFee + matCost;
-                                                const platformFeeAmount = subTotal * (platformFee / 100);
+                                                // Fee Base: only Base+Dist for all categories (Commission should NOT be on material/fuel cost)
+                                                const feeBase = baseFee + distFee;
+                                                
+                                                const platformFeeAmount = feeBase * (platformFee / 100);
                                                 const netEarnings = subTotal - platformFeeAmount;
 
                                                 return (
@@ -1973,13 +2024,13 @@ const ProviderDashboard = () => {
                                     <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
                                         {/* Service Category Filter */}
                                         <div className="flex bg-card/50 p-1 rounded-xl border border-border/50">
-                                            {['All', 'Mechanic', 'Fuel Delivery'].map(filter => (
+                                            {['All', 'Mechanic', 'Fuel Delivery', 'EV Support'].map(filter => (
                                                 <button
                                                     key={filter}
                                                     onClick={() => setServiceFilter(filter)}
                                                     className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${serviceFilter === filter ? 'bg-blue-500 text-white shadow-md' : 'text-muted-foreground hover:text-foreground'}`}
                                                 >
-                                                    {filter === 'Fuel Delivery' ? 'Fuel' : filter}
+                                                    {filter === 'Fuel Delivery' ? 'Fuel' : filter === 'EV Support' ? 'Electric' : filter}
                                                 </button>
                                             ))}
                                         </div>
@@ -2060,9 +2111,11 @@ const ProviderDashboard = () => {
                                                     <div className="absolute top-0 right-0 p-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
 
                                                     <div className="relative z-10 flex items-start gap-5 mb-6">
-                                                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 border border-white/5 shadow-inner ${service.active ? 'bg-blue-500 text-white shadow-blue-500/20' : 'bg-muted/50 text-muted-foreground'}`}>
+                                                           <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 border border-white/5 shadow-inner ${service.active ? 'bg-blue-500 text-white shadow-blue-500/20' : 'bg-muted/50 text-muted-foreground'}`}>
                                                             {fullDetails.category === 'Fuel Delivery' ? (
                                                                 <Fuel className="w-7 h-7" />
+                                                            ) : fullDetails.category === 'EV Support' ? (
+                                                                <Zap className="w-7 h-7" />
                                                             ) : (
                                                                 <Wrench className="w-7 h-7" />
                                                             )}
@@ -2424,7 +2477,11 @@ const ProviderDashboard = () => {
                             return true;
                         });
 
-                        const totalProviderCut = filteredEarnings.reduce((sum, txn) => sum + (txn.pricing?.totalEstimate || txn.pricing?.totalAmount || 0) * 0.95, 0);
+                        const totalProviderCut = filteredEarnings.reduce((sum, txn) => {
+                            const net = txn.pricing?.providerEarnings;
+                            if (net !== undefined && net !== null && net !== 0) return sum + net;
+                            return sum + (txn.pricing?.totalEstimate || txn.pricing?.totalAmount || 0) * 0.95;
+                        }, 0);
 
                         return (
                             <div className="space-y-8 max-w-5xl mx-auto">
@@ -2468,7 +2525,7 @@ const ProviderDashboard = () => {
                                                 {filteredEarnings.map((txn, index) => {
                                                     const txnDate = new Date(txn.timestamps?.createdAt || txn.createdAt);
                                                     const totalBill = txn.pricing?.totalEstimate || txn.pricing?.totalAmount || 0;
-                                                    const netEarned = totalBill * 0.95;
+                                                    // Removed netEarned calculation here, using txn.pricing.providerEarnings directly in cell
                                                     return (
                                                         <motion.tr
                                                             key={txn._id}
@@ -2485,11 +2542,14 @@ const ProviderDashboard = () => {
                                                                 <span className="font-bold">{txn.customer?.name}</span>
                                                             </td>
                                                             <td className="py-4 px-4 border-r border-border/50 text-right font-bold text-foreground">
-                                                                <span className="line-through text-muted-foreground text-xs mr-2">₹{totalBill}</span>
                                                                 ₹{totalBill}
                                                             </td>
                                                             <td className="py-4 px-4 text-right font-black text-green-500">
-                                                                + ₹{netEarned.toFixed(2)}
+                                                                + ₹{(() => {
+                                                                    const net = txn.pricing?.providerEarnings;
+                                                                    if (net !== undefined && net !== null && net !== 0) return net.toFixed(2);
+                                                                    return (totalBill * 0.95).toFixed(2);
+                                                                })()}
                                                             </td>
                                                         </motion.tr>
                                                     );
@@ -2673,31 +2733,29 @@ const ProviderDashboard = () => {
                                             <div className="flex-1 flex flex-col">
                                                 <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-2">Location Update (Drag Marker)</label>
                                                 <div className="flex-1 w-full rounded-3xl overflow-hidden border border-border relative min-h-[600px]">
-                                                    <MapComponent
+                                                    <LeafletMapComponent
                                                         center={mapCenter}
                                                         zoom={14}
-                                                    >
-                                                        {updateData.location?.coordinates && (
-                                                            <Marker
-                                                                draggable={true}
-                                                                position={{
-                                                                    lat: updateData.location.coordinates[1],
-                                                                    lng: updateData.location.coordinates[0]
-                                                                }}
-                                                                onDragEnd={(e) => {
-                                                                    const newLat = e.latLng.lat();
-                                                                    const newLng = e.latLng.lng();
-                                                                    setUpdateData(prev => ({
-                                                                        ...prev,
-                                                                        location: {
-                                                                            type: 'Point',
-                                                                            coordinates: [newLng, newLat]
-                                                                        }
-                                                                    }));
-                                                                }}
-                                                            />
-                                                        )}
-                                                    </MapComponent>
+                                                        markers={updateData.location?.coordinates ? [{
+                                                            draggable: true,
+                                                            position: {
+                                                                lat: updateData.location.coordinates[1],
+                                                                lng: updateData.location.coordinates[0]
+                                                            },
+                                                            onDragEnd: (e) => {
+                                                                const newLat = e.latLng.lat();
+                                                                const newLng = e.latLng.lng();
+                                                                setUpdateData(prev => ({
+                                                                    ...prev,
+                                                                    location: {
+                                                                        type: 'Point',
+                                                                        coordinates: [newLng, newLat]
+                                                                    }
+                                                                }));
+                                                            },
+                                                            key: 'update-location'
+                                                        }] : []}
+                                                    />
                                                 </div>
 
                                                 <div className="flex gap-4 pt-8">
